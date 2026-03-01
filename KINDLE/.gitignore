@@ -1,0 +1,5 @@
+.obsidian/workspace
+.obsidian/workspace.json
+.obsidian/plugins/obsidian-git/data.json
+*.tmp
+.DS_Store
