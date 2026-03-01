@@ -1,6 +1,6 @@
 {
   "amazonRegion": "japan",
-  "highlightsFolder": "KINDLE",
+  "highlightsFolder": "Source/Kindle",
   "lastSyncMode": "amazon",
   "hasStartedSync": true,
   "isLoggedIn": true,
