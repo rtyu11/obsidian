@@ -1,0 +1,9 @@
+.obsidian/workspace
+.obsidian/workspace.json
+.obsidian/plugins/obsidian-git/data.json
+*.tmp
+.DS_Store
+.smtcmp_vector_db.tar.gz
+.smtcmp_json_db/
+
+.obsidian/plugins/smart-composer/data.json
