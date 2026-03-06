@@ -2,5 +2,6 @@
   "obsidian-kindle-plugin",
   "smart-composer",
   "templater-obsidian",
-  "obsidian-git"
+  "obsidian-git",
+  "obsidian-importer"
 ]
