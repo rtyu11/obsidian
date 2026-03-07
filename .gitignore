@@ -16,3 +16,9 @@
 Daily/Inbox/media/
 Daily/Inbox/_KeepSidianLogs/
 .obsidian/plugins/keepsidian/logs/
+
+# KeepSidian local state (per-machine credentials/settings)
+.obsidian/plugins/keepsidian/
+
+# Inbox is an ephemeral import area; do not sync raw Keep files via Git.
+Daily/Inbox/

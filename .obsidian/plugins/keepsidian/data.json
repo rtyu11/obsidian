@@ -32,14 +32,14 @@
   "autoSyncEnabled": false,
   "autoSyncIntervalHours": 24,
   "lastSyncSummary": {
-    "timestamp": 1772854678129,
-    "processedNotes": 1,
-    "totalNotes": 1,
+    "timestamp": 1772855547581,
+    "processedNotes": 0,
+    "totalNotes": null,
     "success": true,
     "mode": "import"
   },
   "lastSyncLogPath": "Daily/Inbox/_KeepSidianLogs/2026-03-07.md",
-  "keepSidianLastSuccessfulSyncDate": "2026-03-07T03:37:58.109Z",
+  "keepSidianLastSuccessfulSyncDate": "2026-03-07T03:52:27.558Z",
   "frontmatterPascalCaseFixApplied": true,
   "twoWaySyncBackupAcknowledged": false,
   "twoWaySyncEnabled": false,
