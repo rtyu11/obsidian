@@ -72,6 +72,8 @@ def sync():
                 text = "\n".join(parts).strip()
                 if text:
                     collected[suffix].append(text)
+                    # Archive the note after collecting its content
+                    note.archived = True
 
     written = []
     for suffix, notes in collected.items():
@@ -93,6 +95,12 @@ def sync():
 
     if written:
         print(f"同期完了: {', '.join(written)}")
+        # Sync the archive status back to Google Keep
+        try:
+            keep.sync()
+            print("Keep上のメモをアーカイブしました。")
+        except Exception as e:
+            print(f"警告: メモのアーカイブ(同期)に失敗しました: {e}")
     else:
         print("同期するメモはありませんでした（ob-* ラベルのメモが0件）")
 

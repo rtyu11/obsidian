@@ -43,14 +43,38 @@ def setup():
     print("\nGoogle Keep に接続中...")
 
     try:
+        import gpsoauth
+        
+        # gpsoauthを使用してマスタートークンを取得
+        # Android device ID (適当な16進数16桁)
+        android_id = "9774d56d682e549c"
+        
+        master_response = gpsoauth.perform_master_login(email, password, android_id)
+        
+        if "Token" not in master_response:
+            print(f"\nエラー: ログインに失敗しました。")
+            if "Error" in master_response:
+                if master_response["Error"] == "BadAuthentication":
+                    print("パスワードが間違っているか、アプリパスワードが無効です。")
+                else:
+                    print(f"詳細: {master_response['Error']}")
+            print("\nヒント:")
+            print("  - 2段階認証が有効な場合はアプリパスワードを使用してください")
+            print("  - アプリパスワード中のスペースは入れずに入力してください")
+            sys.exit(1)
+            
+        token = master_response["Token"]
+        
+        # 取得したマスタートークンがgkeepapiで使えるかテスト
         keep = gkeepapi.Keep()
-        keep.authenticate(email, password)
-        token = keep.getMasterToken()
+        keep.resume(email, token)
+        
+    except ImportError:
+        print("\nエラー: gpsoauth パッケージが見つかりません。")
+        print("以下を実行してインストールしてください: pip install gpsoauth")
+        sys.exit(1)
     except Exception as e:
-        print(f"\nエラー: ログインに失敗しました。\n{e}")
-        print("\nヒント:")
-        print("  - 2段階認証が有効な場合はアプリパスワードを使用してください")
-        print("  - アプリパスワードの取得: https://myaccount.google.com/apppasswords")
+        print(f"\nエラー: 接続中に問題が発生しました。\n{e}")
         sys.exit(1)
 
     with open(TOKEN_PATH, "w", encoding="utf-8") as f:
