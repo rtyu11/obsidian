@@ -1,127 +1,105 @@
----
+﻿---
 name: Keep Syncer
-description: 「Keepを同期して」がトリガーとなり、Google Keep の ob-* ラベルのメモを Daily/Inbox/ に書き出す。完了後に process_daily スキルで整形できる。
----
+description: 縲桑eep繧貞酔譛溘＠縺ｦ縲阪′繝医Μ繧ｬ繝ｼ縺ｨ縺ｪ繧翫；oogle Keep 縺ｮ ob-* 繝ｩ繝吶Ν縺ｮ繝｡繝｢繧・Daily/Inbox/ 縺ｫ譖ｸ縺榊・縺吶ょｮ御ｺ・ｾ後↓ process_daily 繧ｹ繧ｭ繝ｫ縺ｧ謨ｴ蠖｢縺ｧ縺阪ｋ縲・---
 
 # Keep Syncer Skill
 
-## トリガー条件
-- **「Keepを同期して」**：Google Keep のメモを Daily/Inbox/ に書き出す
-- **「Keepを同期してから整形して」**：同期 → Inbox整形 を連続実行する
-
+## 繝医Μ繧ｬ繝ｼ譚｡莉ｶ
+- **縲桑eep繧貞酔譛溘＠縺ｦ縲・*・哦oogle Keep 縺ｮ繝｡繝｢繧・Daily/Inbox/ 縺ｫ譖ｸ縺榊・縺・- **縲桑eep繧貞酔譛溘＠縺ｦ縺九ｉ謨ｴ蠖｢縺励※縲・*・壼酔譛・竊・Inbox謨ｴ蠖｢ 繧帝｣邯壼ｮ溯｡後☆繧・
 ---
 
-## フォルダ構成
+## 繝輔か繝ｫ繝讒区・
 
 ```
 .agents/scripts/
-  sync_keep.py            ← メイン同期スクリプト
-  sync_keep_setup.py      ← 初回セットアップ用（トークン取得）
-
-Daily/Inbox/              ← 同期結果の出力先
+  sync_keep.py            竊・繝｡繧､繝ｳ蜷梧悄繧ｹ繧ｯ繝ｪ繝励ヨ
+  sync_keep_setup.py      竊・蛻晏屓繧ｻ繝・ヨ繧｢繝・・逕ｨ・医ヨ繝ｼ繧ｯ繝ｳ蜿門ｾ暦ｼ・
+Daily/Inbox/              竊・蜷梧悄邨先棡縺ｮ蜃ｺ蜉帛・
   YYYY-MM-DD-ideas.md
   YYYY-MM-DD-tasks.md
   YYYY-MM-DD-memo.md
 
-C:\Users\111r9\.keep_token  ← 認証トークン（Vault外・git管理外）
-```
+C:\Users\111r9\.keep_token  竊・隱崎ｨｼ繝医・繧ｯ繝ｳ・・ault螟悶・git邂｡逅・､厄ｼ・```
 
 ---
 
-## 実行手順
-
-### 1. セットアップ確認
-
-`C:\Users\111r9\.keep_token` が存在するか確認する。
-
-存在しない場合は以下を伝えて終了：
-> 「セットアップが必要です。以下の手順を実行してください：
-> 1. pip install gkeepapi
-> 2. python ".agents/scripts/sync_keep_setup.py"」
-
-### 2. スクリプト実行
-
-以下のコマンドを Bash ツールで実行する：
-
+## 螳溯｡梧焔鬆・
+### 1. 繧ｻ繝・ヨ繧｢繝・・遒ｺ隱・
+`C:\Users\111r9\.keep_token` 縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱阪☆繧九・
+蟄伜惠縺励↑縺・ｴ蜷医・莉･荳九ｒ莨昴∴縺ｦ邨ゆｺ・ｼ・> 縲後そ繝・ヨ繧｢繝・・縺悟ｿ・ｦ√〒縺吶ゆｻ･荳九・謇矩・ｒ螳溯｡後＠縺ｦ縺上□縺輔＞・・> 1. pip install gkeepapi
+> 2. python ".agents/scripts/sync_keep_setup.py"縲・
+### 2. 繧ｹ繧ｯ繝ｪ繝励ヨ螳溯｡・
+莉･荳九・繧ｳ繝槭Φ繝峨ｒ Bash 繝・・繝ｫ縺ｧ螳溯｡後☆繧具ｼ・
 ```bash
 python ".agents/scripts/sync_keep.py"
 ```
 
-作業ディレクトリ：`c:/Users/111r9/OneDrive/ドキュメント/Obsidian Vault/obsidian/`
+菴懈･ｭ繝・ぅ繝ｬ繧ｯ繝医Μ・啻c:/Users/111r9/OneDrive/繝峨く繝･繝｡繝ｳ繝・Obsidian Vault/obsidian/`
 
-### 3. 実行結果の確認
+### 3. 螳溯｡檎ｵ先棡縺ｮ遒ｺ隱・
+- `蜷梧悄螳御ｺ・ YYYY-MM-DD-ideas.md (X莉ｶ), ...` 縺ｨ陦ｨ遉ｺ縺輔ｌ繧後・謌仙粥
+- 繧ｨ繝ｩ繝ｼ縺悟・縺溷ｴ蜷医・譌･譛ｬ隱槭〒繝ｦ繝ｼ繧ｶ繝ｼ縺ｫ莨昴∴縲∝ｯｾ蜃ｦ豕輔ｒ譯亥・縺吶ｋ
 
-- `同期完了: YYYY-MM-DD-ideas.md (X件), ...` と表示されれば成功
-- エラーが出た場合は日本語でユーザーに伝え、対処法を案内する
+**繧医￥縺ゅｋ繧ｨ繝ｩ繝ｼ縺ｨ蟇ｾ蜃ｦ・・*
 
-**よくあるエラーと対処：**
-
-| エラー | 原因 | 対処 |
+| 繧ｨ繝ｩ繝ｼ | 蜴溷屏 | 蟇ｾ蜃ｦ |
 |---|---|---|
-| `トークンファイルが見つかりません` | セットアップ未実施 | `sync_keep_setup.py` を実行 |
-| `接続に失敗しました` | トークン期限切れ | `sync_keep_setup.py` を再実行 |
-| `ModuleNotFoundError: gkeepapi` | ライブラリ未インストール | `pip install gkeepapi` を実行 |
+| `繝医・繧ｯ繝ｳ繝輔ぃ繧､繝ｫ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ` | 繧ｻ繝・ヨ繧｢繝・・譛ｪ螳滓命 | `sync_keep_setup.py` 繧貞ｮ溯｡・|
+| `謗･邯壹↓螟ｱ謨励＠縺ｾ縺励◆` | 繝医・繧ｯ繝ｳ譛滄剞蛻・ｌ | `sync_keep_setup.py` 繧貞・螳溯｡・|
+| `ModuleNotFoundError: gkeepapi` | 繝ｩ繧､繝悶Λ繝ｪ譛ｪ繧､繝ｳ繧ｹ繝医・繝ｫ | `pip install gkeepapi` 繧貞ｮ溯｡・|
 
-### 4. 結果報告
+### 4. 邨先棡蝣ｱ蜻・
+譖ｸ縺榊・縺輔ｌ縺溘ヵ繧｡繧､繝ｫ縺ｮ莉ｶ謨ｰ繧堤ｰ｡貎斐↓蝣ｱ蜻翫☆繧九・
+萓具ｼ壹後い繧､繝・い4莉ｶ縲√ち繧ｹ繧ｯ2莉ｶ縲√Γ繝｢1莉ｶ繧・Daily/Inbox/ 縺ｫ譖ｸ縺榊・縺励∪縺励◆縲・
+### 5. 蠕檎ｶ壼・逅・・譯亥・
 
-書き出されたファイルの件数を簡潔に報告する。
+縲栗nbox繧呈紛蠖｢縺励※縲阪→邯壹￠繧九％縺ｨ縺ｧ process_daily 繧ｹ繧ｭ繝ｫ繧貞他縺ｳ蜃ｺ縺帙ｋ縺薙→繧呈｡亥・縺吶ｋ縲・
+繝ｦ繝ｼ繧ｶ繝ｼ縺後梧紛蠖｢縺励※縲阪→險縺｣縺溘ｉ process_daily 繧ｹ繧ｭ繝ｫ縺ｮ謇矩・↓遘ｻ繧九・
+---
 
-例：「アイデア4件、タスク2件、メモ1件を Daily/Inbox/ に書き出しました」
-
-### 5. 後続処理の案内
-
-「Inboxを整形して」と続けることで process_daily スキルを呼び出せることを案内する。
-
-ユーザーが「整形して」と言ったら process_daily スキルの手順に移る。
+## 遖∵ｭ｢莠矩・
+- `Source/` 驟堺ｸ九・繝輔ぃ繧､繝ｫ縺ｯ邱ｨ髮・・遘ｻ蜍輔・蜑企勁縺吶∋縺ｦ遖∵ｭ｢
+- `.keep_token` 縺ｮ荳ｭ霄ｫ繧偵メ繝｣繝・ヨ縺ｫ陦ｨ遉ｺ縺励↑縺・ｼ医そ繧ｭ繝･繝ｪ繝・ぅ・・- 縺吶∋縺ｦ縺ｮ霑皮ｭ斐・繝弱・繝医・**譌･譛ｬ隱・*縺ｧ陦後≧
 
 ---
 
-## 禁止事項
+## 蛻晏屓繧ｻ繝・ヨ繧｢繝・・謇矩・
+蛻晏屓縺ｮ縺ｿ莉･荳九ｒ螳溯｡後☆繧九％縺ｨ・・
+**繧ｹ繝・ャ繝・・哦oogle繧｢繝励Μ繝代せ繝ｯ繝ｼ繝峨・蜿門ｾ暦ｼ・谿ｵ髫手ｪ崎ｨｼ繧剃ｽｿ逕ｨ縺励※縺・ｋ蝣ｴ蜷茨ｼ・*
 
-- `Source/` 配下のファイルは編集・移動・削除すべて禁止
-- `.keep_token` の中身をチャットに表示しない（セキュリティ）
-- すべての返答・ノートは**日本語**で行う
+1. `https://myaccount.google.com/apppasswords` 繧帝幕縺・2. 繧｢繝励Μ蜷阪ｒ莉ｻ諢上〒蜈･蜉帙＠縺ｦ菴懈・
+3. 陦ｨ遉ｺ縺輔ｌ縺・6譁・ｭ励・繝代せ繝ｯ繝ｼ繝峨ｒ繝｡繝｢縺吶ｋ
 
----
-
-## 初回セットアップ手順
-
-初回のみ以下を実行すること：
-
-**ステップ1：Googleアプリパスワードの取得（2段階認証を使用している場合）**
-
-1. `https://myaccount.google.com/apppasswords` を開く
-2. アプリ名を任意で入力して作成
-3. 表示された16文字のパスワードをメモする
-
-**ステップ2：gkeepapi のインストール**
+**繧ｹ繝・ャ繝・・喩keepapi 縺ｮ繧､繝ｳ繧ｹ繝医・繝ｫ**
 
 ```bash
 pip install gkeepapi
 ```
 
-**ステップ3：トークン取得**
+**繧ｹ繝・ャ繝・・壹ヨ繝ｼ繧ｯ繝ｳ蜿門ｾ・*
 
 ```bash
 python ".agents/scripts/sync_keep_setup.py"
 ```
 
-メールアドレスとアプリパスワードを入力すると `C:\Users\111r9\.keep_token` が生成される。
+繝｡繝ｼ繝ｫ繧｢繝峨Ξ繧ｹ縺ｨ繧｢繝励Μ繝代せ繝ｯ繝ｼ繝峨ｒ蜈･蜉帙☆繧九→ `C:\Users\111r9\.keep_token` 縺檎函謌舌＆繧後ｋ縲・
+---
+
+## 蜈ｨ菴薙ヵ繝ｭ繝ｼ
+
+```
+繧ｹ繝槭・髻ｳ螢ｰ蜈･蜉・    竊・Google Keep・・b-ideas / ob-tasks / ob-memo 繝ｩ繝吶Ν・・    竊・縲桑eep繧貞酔譛溘＠縺ｦ縲搾ｼ医％縺ｮ繧ｹ繧ｭ繝ｫ・・    竊・sync_keep.py 螳溯｡・竊・Daily/Inbox/YYYY-MM-DD-*.md 逕滓・
+    竊・縲栗nbox繧呈紛蠖｢縺励※縲搾ｼ・rocess_daily 繧ｹ繧ｭ繝ｫ・・    竊・Daily/Ideas繝ｻTasks繝ｻMemo 縺ｫ霑ｽ險倥！nbox 蜑企勁
+```
 
 ---
 
-## 全体フロー
+## 文字化け時の前処理（2026-03-07追記）
 
+Keep連携後に `Daily/Inbox` の本文が文字化けしている場合は、同期直後に次を実行する。
+
+```bash
+python ".agents/scripts/repair_keep_mojibake.py" --apply
 ```
-スマホ音声入力
-    ↓
-Google Keep（ob-ideas / ob-tasks / ob-memo ラベル）
-    ↓
-「Keepを同期して」（このスキル）
-    ↓
-sync_keep.py 実行 → Daily/Inbox/YYYY-MM-DD-*.md 生成
-    ↓
-「Inboxを整形して」（process_daily スキル）
-    ↓
-Daily/Ideas・Tasks・Memo に追記、Inbox 削除
-```
+
+その後に `process_daily` を実行する。
