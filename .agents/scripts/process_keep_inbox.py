@@ -40,6 +40,8 @@ TAG_PATTERNS = [
 class InboxNote:
     path: Path
     keep_id: str
+    keep_url: str
+    title: str
     bucket: str
     entry: str
 
@@ -59,6 +61,33 @@ def save_state(processed_ids: Set[str]) -> None:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     payload = {"processed_ids": sorted(processed_ids)}
     STATE_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def save_archive_queue(items: List[Tuple[str, str]]) -> Optional[Path]:
+    clean = [(t, u) for (t, u) in items if u]
+    if not clean:
+        return None
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    queue_state = ROOT / ".agents" / "state" / "keep_archive_queue.md"
+    queue_state.parent.mkdir(parents=True, exist_ok=True)
+    state_lines = ["# Keep Manual Archive Queue", "", "Processed notes to archive in Google Keep:", ""]
+    for title, url in clean:
+        state_lines.append(f"- [{title}]({url})")
+    state_lines.append("")
+    queue_state.write_text("\n".join(state_lines), encoding="utf-8")
+
+    mobile_note = ROOT / "Daily" / "Tasks" / "Keepアーカイブ候補.md"
+    if mobile_note.exists():
+        existing = mobile_note.read_text(encoding="utf-8", errors="replace").rstrip()
+    else:
+        existing = "# Keepアーカイブ候補"
+    block = [f"", f"## {today}", ""]
+    for title, url in clean:
+        block.append(f"- [ ] [{title}]({url})")
+    mobile_note.write_text(existing + "\n" + "\n".join(block) + "\n", encoding="utf-8")
+
+    return queue_state
 
 
 def parse_frontmatter(raw: str) -> Tuple[Dict[str, str], str]:
@@ -194,9 +223,11 @@ def collect_notes() -> List[InboxNote]:
         raw = path.read_text(encoding="utf-8", errors="replace")
         meta, body = parse_frontmatter(raw)
         keep_id = extract_keep_id(meta, path, body)
+        keep_url = meta.get("GoogleKeepUrl", "").strip()
+        title = path.stem.strip()
         bucket = classify_bucket(body)
         entry = normalize_entry(path, body)
-        notes.append(InboxNote(path=path, keep_id=keep_id, bucket=bucket, entry=entry))
+        notes.append(InboxNote(path=path, keep_id=keep_id, keep_url=keep_url, title=title, bucket=bucket, entry=entry))
     return notes
 
 
@@ -209,12 +240,15 @@ def main() -> None:
 
     grouped: Dict[str, List[str]] = {"ideas": [], "tasks": [], "memo": [], "diary": []}
     to_mark_processed: Set[str] = set()
+    archive_items: List[Tuple[str, str]] = []
 
     for note in notes:
         if note.keep_id in processed_ids:
             continue
         grouped[note.bucket].append(note.entry)
         to_mark_processed.add(note.keep_id)
+        if note.keep_url:
+            archive_items.append((note.title, note.keep_url))
 
     today = datetime.now().strftime("%Y-%m-%d")
     appended_total = 0
@@ -226,11 +260,14 @@ def main() -> None:
 
     processed_ids.update(to_mark_processed)
     save_state(processed_ids)
+    queue_path = save_archive_queue(archive_items)
 
     removed = cleanup_inbox()
     print(f"processed notes: {len(to_mark_processed)}")
     print(f"appended entries: {appended_total}")
     print(f"cleaned inbox items: {removed}")
+    if queue_path is not None:
+        print(f"archive queue: {queue_path}")
 
 
 if __name__ == "__main__":
