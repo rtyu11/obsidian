@@ -1,26 +1,79 @@
+# ===================================================
+# Obsidian Vault .gitignore
+# ===================================================
+
+# ---------------------------------------------------
+# [マシン固有] Obsidianのワークスペース状態
+# PCごとにウィンドウ配置・開いているファイルが異なるため除外
+# ---------------------------------------------------
 .obsidian/workspace
 .obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# ---------------------------------------------------
+# [マシン固有] Obsidianアプリ設定
+# KeepSidianのLastSuccessfulSyncDateなどPC固有の値が入るため除外
+# ---------------------------------------------------
+.obsidian/app.json
+
+# ---------------------------------------------------
+# [マシン固有] プラグイン固有設定
+# ---------------------------------------------------
+# kindle-plugin: isLoggedIn / lastSyncDate などPC固有情報を含む
+.obsidian/plugins/obsidian-kindle-plugin/data.json
+
+# KeepSidian: 認証情報・ローカル状態
+.obsidian/plugins/keepsidian/
+.obsidian/plugins/keepsidian/logs/
+
+# smart-composer: ベクターDB等ローカルキャッシュ
+.obsidian/plugins/smart-composer/
+
+# obsidian-git: PAT/パスワード等の認証情報が入る場合があるため除外
 .obsidian/plugins/obsidian-git/data.json
+
+# ---------------------------------------------------
+# [共有OK] 以下は各PCで共通にしたいため除外しない
+# .obsidian/app.json 以外の設定ファイル
+# .obsidian/core-plugins.json
+# .obsidian/community-plugins.json
+# .obsidian/appearance.json
+# .obsidian/graph.json
+# .obsidian/templates.json
+# .obsidian/plugins/templater-obsidian/data.json
+# ---------------------------------------------------
+
+# ---------------------------------------------------
+# ツール・一時ファイル
+# ---------------------------------------------------
 *.tmp
 .DS_Store
+Thumbs.db
+
+# smtcmp (smart-composer) ローカルデータベース
 .smtcmp_vector_db.tar.gz
 .smtcmp_json_db/
 
-.obsidian/plugins/smart-composer/
+# エージェント実行ログ・状態（ランタイム生成物）
 .agents/logs/
 .agents/state/
 
-# Google Keep 認証トークン（誤ってVault内に置いた場合の保護）
+# ---------------------------------------------------
+# Google Keep / KeepSidian
+# ---------------------------------------------------
+# 認証トークン
 .keep_token
 *.keep_token
 
-# KeepSidian generated files
+# KeepSidian 生成ファイル
 Daily/Inbox/media/
 Daily/Inbox/_KeepSidianLogs/
-.obsidian/plugins/keepsidian/logs/
 
-# KeepSidian local state (per-machine credentials/settings)
-.obsidian/plugins/keepsidian/
-
-# Inbox is an ephemeral import area; do not sync raw Keep files via Git.
+# Inbox は一時インポートエリアのため除外
 Daily/Inbox/
+
+# ---------------------------------------------------
+# 作業用テキストファイル（ローカルのみ）
+# ---------------------------------------------------
+push_commit_files.txt
+staged_files.txt
