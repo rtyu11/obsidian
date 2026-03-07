@@ -1,0 +1,310 @@
+/*
+
+This CSS file will be included with your plugin, and
+available in the app when your plugin is enabled.
+
+If your plugin does not need CSS, delete this file.
+
+*/
+
+/* Add these styles to your existing styles.css file */
+
+.subscription-active {
+	background-color: var(--background-modifier-success);
+	border-radius: 4px;
+	padding: 8px;
+}
+
+.keepsidian-link-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--input-height);
+	padding: 0 var(--size-4-2, 12px);
+	border-radius: var(--input-radius);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	box-shadow: var(--input-shadow, none);
+	color: var(--text-normal);
+	text-decoration: none;
+	font-size: var(--font-ui-small);
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: var(--cursor, pointer);
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.keepsidian-link-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+	box-shadow: var(--input-shadow-hover, var(--input-shadow, none));
+	text-decoration: none;
+}
+
+.keepsidian-link-button:active {
+	background: var(--interactive-active);
+	border-color: var(--background-modifier-border-active, var(--background-modifier-border));
+	box-shadow: var(--input-shadow-active, var(--input-shadow, none));
+}
+
+.keepsidian-link-button:focus-visible {
+	outline: var(--focus-width, 2px) solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+.setting-item.subscription-active .setting-item-control {
+	color: var(--text-success);
+	font-weight: bold;
+}
+
+.premium-features-list {
+	margin: 12px 0;
+	padding-left: 24px;
+}
+
+.premium-features-list li {
+	margin: 4px 0;
+}
+
+/* KeepSidian: Status bar progress meter */
+.keepsidian-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.keepsidian-hidden {
+	display: none !important;
+}
+
+.keepsidian-status .keepsidian-status-text {
+	white-space: nowrap;
+}
+
+.keepsidian-progress {
+	min-width: 64px;
+}
+
+/* KeepSidian: Progress modal styles */
+.keepsidian-modal {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 360px;
+}
+
+.keepsidian-modal-title {
+	margin: 0 0 4px 0;
+	color: var(--text-accent);
+	font-weight: 700;
+}
+
+.keepsidian-modal-status {
+	color: var(--text-muted);
+}
+
+.keepsidian-modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.keepsidian-modal-action {
+	flex: 1 1 120px;
+	padding: 6px 12px;
+	white-space: nowrap;
+}
+
+.keepsidian-modal-action:disabled {
+	opacity: 0.6;
+}
+
+.requires-subscription {
+	opacity: 0.6;
+}
+
+.requires-subscription .setting-item-name::after {
+	content: "\1F512";
+	/* Unicode lock icon */
+	margin-left: 4px;
+}
+
+.keepsidian-support-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin: 16px 0;
+	font-size: 0.95em;
+	color: var(--text-muted);
+}
+
+.keepsidian-support-spacer {
+	flex: 1;
+}
+
+.keepsidian-support-label {
+	font-weight: 400;
+	font-size: var(--font-ui-small);
+}
+
+.keepsidian-support-version {
+	font-weight: 400;
+	color: var(--text-faint, var(--text-muted));
+}
+
+.keepsidian-support-links {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.keepsidian-support-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-accent);
+	text-decoration: none;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
+}
+
+.keepsidian-support-link:hover {
+	background: var(--background-modifier-active-hover, var(--background-modifier-border));
+	text-decoration: none;
+}
+
+.keepsidian-support-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.keepsidian-support-icon svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.keepsidian-support-text {
+	font-weight: 400;
+	font-size: var(--font-ui-small);
+}
+
+.keepsidian-token-status {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 4px;
+	margin-left: 10px;
+	color: var(--text-success, #4caf50);
+}
+
+.keepsidian-token-status__icon {
+	display: inline-flex;
+	align-items: baseline;
+	justify-content: center;
+	color: inherit;
+}
+
+.keepsidian-token-status__icon svg {
+	width: 0.8em;
+	height: 0.8em;
+}
+
+.keepsidian-token-status__text {
+	color: inherit;
+	font-size: var(--font-ui-small);
+}
+
+.keepsidian-settings-hr {
+	margin: 16px 0;
+	border: none;
+	border-top: 2px dashed var(--background-modifier-border);
+}
+
+.keepsidian-retrieve-token-wrapper {
+	display: grid;
+	grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+	gap: 16px;
+	align-items: start;
+	margin-top: 12px;
+}
+
+@media (max-width: 960px) {
+	.keepsidian-retrieve-token-wrapper {
+		grid-template-columns: 1fr;
+	}
+}
+
+.keepsidian-retrieve-token-guide {
+	background: var(--background-modifier-hover);
+	padding: 16px;
+	border-radius: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.keepsidian-retrieve-token-guide__title {
+	margin: 0;
+	font-size: 1.1em;
+	font-weight: 600;
+}
+
+.keepsidian-retrieve-token-guide__message {
+	margin: 0;
+	color: var(--text-muted);
+	line-height: 1.4;
+}
+
+.keepsidian-retrieve-token-guide__list {
+	margin: 0;
+	padding-left: 20px;
+	color: var(--text-normal);
+	line-height: 1.35;
+}
+
+.keepsidian-retrieve-token-guide__action {
+	margin-top: 8px;
+}
+
+.keepsidian-retrieve-token-guide__status {
+	padding: 8px 10px;
+	border-radius: 6px;
+	font-size: 0.92em;
+	line-height: 1.35;
+}
+
+.keepsidian-status-info {
+	background: var(--background-secondary);
+	color: var(--text-muted);
+}
+
+.keepsidian-status-success {
+	background: var(--background-modifier-success);
+	color: var(--text-normal);
+}
+
+.keepsidian-status-warning {
+	background: var(--background-modifier-warning);
+	color: var(--text-normal);
+}
+
+.keepsidian-status-error {
+	background: var(--background-modifier-error);
+	color: var(--text-on-accent, var(--text-normal));
+}
+
+.keepsidian-retrieve-token-webview {
+	min-height: 260px;
+}

@@ -1,0 +1,47 @@
+{
+  "email": "111r9y6u9@gmail.com",
+  "token": "",
+  "syncTokenSecretId": "google-sync-token",
+  "saveLocation": "Daily/Inbox",
+  "oauthFlow": "desktop",
+  "oauthDebugMode": false,
+  "oauthPlaywrightUseSystemBrowser": true,
+  "subscriptionCache": {
+    "info": {
+      "metering_info": null,
+      "plan_details": null,
+      "subscription_status": "inactive",
+      "trial_or_promo": null
+    },
+    "timestamp": 1772854523824,
+    "email": "111r9y6u9@gmail.com"
+  },
+  "premiumFeatures": {
+    "autoSync": false,
+    "syncIntervalMinutes": 5,
+    "includeNotesTerms": [],
+    "excludeNotesTerms": [],
+    "updateTitle": false,
+    "suggestTags": false,
+    "maxTags": 5,
+    "tagPrefix": "",
+    "limitToExistingTags": false
+  },
+  "gdriveTokenSecretId": "google-drive-access-token",
+  "gdriveRefreshTokenSecretId": "google-drive-refresh-token",
+  "autoSyncEnabled": false,
+  "autoSyncIntervalHours": 24,
+  "lastSyncSummary": {
+    "timestamp": 1772854678129,
+    "processedNotes": 1,
+    "totalNotes": 1,
+    "success": true,
+    "mode": "import"
+  },
+  "lastSyncLogPath": "Daily/Inbox/_KeepSidianLogs/2026-03-07.md",
+  "keepSidianLastSuccessfulSyncDate": "2026-03-07T03:37:58.109Z",
+  "frontmatterPascalCaseFixApplied": true,
+  "twoWaySyncBackupAcknowledged": false,
+  "twoWaySyncEnabled": false,
+  "twoWaySyncAutoSyncEnabled": false
+}

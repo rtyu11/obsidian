@@ -1,94 +1,76 @@
 """
-sync_keep_setup.py - Google Keep 初回セットアップ
+sync_keep_setup.py - OAuth setup for Google Keep sync
 
-初回1回だけ実行してマスタートークンを取得・保存する。
-以降は sync_keep.py がこのトークンを使って認証する。
+This script performs one-time OAuth authorization and stores a refreshable token
+for unattended runs of sync_keep.py.
 
-実行方法:
-    pip install gkeepapi
-    python ".agents/scripts/sync_keep_setup.py"
-
-事前準備（2段階認証が有効な場合）:
-    https://myaccount.google.com/apppasswords でアプリパスワードを作成する
+Usage:
+    pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+    python ".agents/scripts/sync_keep_setup.py" --client-secrets "C:/path/to/client_secret.json"
 """
 
-import gkeepapi
-import json
-import os
+from __future__ import annotations
+
+import argparse
 import sys
+from pathlib import Path
+
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+SCOPES = ["https://www.googleapis.com/auth/keep"]
+DEFAULT_TOKEN_PATH = Path.home() / ".keep_oauth_token.json"
+DEFAULT_CLIENT_SECRETS = Path.home() / ".keep_client_secret.json"
 
 
-TOKEN_PATH = os.path.join(os.path.expanduser("~"), ".keep_token")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Google Keep OAuth setup")
+    parser.add_argument(
+        "--client-secrets",
+        default=str(DEFAULT_CLIENT_SECRETS),
+        help="Path to OAuth client secret JSON downloaded from Google Cloud.",
+    )
+    parser.add_argument(
+        "--token-path",
+        default=str(DEFAULT_TOKEN_PATH),
+        help="Where to save OAuth token JSON.",
+    )
+    parser.add_argument(
+        "--no-local-server",
+        action="store_true",
+        help="Use console flow instead of opening a local callback server.",
+    )
+    return parser.parse_args()
 
 
-def setup():
-    print("=== Google Keep セットアップ ===\n")
+def main() -> None:
+    args = parse_args()
+    client_secrets_path = Path(args.client_secrets).expanduser()
+    token_path = Path(args.token_path).expanduser()
 
-    if os.path.exists(TOKEN_PATH):
-        answer = input(f"既存のトークンが見つかりました ({TOKEN_PATH})。上書きしますか？ [y/N]: ")
-        if answer.lower() != "y":
-            print("キャンセルしました。")
+    if not client_secrets_path.exists():
+        print(f"Error: client secret file not found: {client_secrets_path}")
+        print("Create OAuth client credentials in Google Cloud and download JSON first.")
+        sys.exit(1)
+
+    if token_path.exists():
+        overwrite = input(f"Token already exists at {token_path}. Overwrite? [y/N]: ").strip().lower()
+        if overwrite != "y":
+            print("Canceled.")
             return
 
-    email = input("Googleメールアドレス: ").strip()
-    if not email:
-        print("エラー: メールアドレスが入力されていません。")
-        sys.exit(1)
+    flow = InstalledAppFlow.from_client_secrets_file(str(client_secrets_path), SCOPES)
+    if args.no_local_server:
+        creds = flow.run_console()
+    else:
+        creds = flow.run_local_server(port=0)
 
-    password = input("アプリパスワード（または通常パスワード）: ").strip()
-    if not password:
-        print("エラー: パスワードが入力されていません。")
-        sys.exit(1)
+    token_path.parent.mkdir(parents=True, exist_ok=True)
+    token_path.write_text(creds.to_json(), encoding="utf-8")
 
-    print("\nGoogle Keep に接続中...")
-
-    try:
-        import gpsoauth
-        import uuid
-        import platform
-        import socket
-        
-        # gpsoauthを使用してマスタートークンを取得
-        # 有効な形式の Android device ID を生成 (ランダムな16桁の16進数)
-        import random
-        android_id = "".join(random.choice("0123456789abcdef") for _ in range(16))
-            
-        print(f"Android ID '{android_id}' で認証を試みます...")
-        
-        master_response = gpsoauth.perform_master_login(email, password, android_id)
-        
-        if "Token" not in master_response:
-            print(f"\nエラー: ログインに失敗しました。")
-            if "Error" in master_response:
-                if master_response["Error"] == "BadAuthentication":
-                    print("パスワードが間違っているか、アプリパスワードが無効です。")
-                else:
-                    print(f"詳細: {master_response['Error']}")
-            print("\nヒント:")
-            print("  - 2段階認証が有効な場合はアプリパスワードを使用してください")
-            print("  - アプリパスワード中のスペースは入れずに入力してください")
-            sys.exit(1)
-            
-        token = master_response["Token"]
-        
-        # 取得したマスタートークンがgkeepapiで使えるかテスト
-        keep = gkeepapi.Keep()
-        keep.resume(email, token)
-        
-    except ImportError:
-        print("\nエラー: gpsoauth パッケージが見つかりません。")
-        print("以下を実行してインストールしてください: pip install gpsoauth")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\nエラー: 接続中に問題が発生しました。\n{e}")
-        sys.exit(1)
-
-    with open(TOKEN_PATH, "w", encoding="utf-8") as f:
-        json.dump({"email": email, "token": token}, f)
-
-    print(f"\nセットアップ完了！トークンを保存しました: {TOKEN_PATH}")
-    print("次は sync_keep.py を実行してメモを同期できます。")
+    print("OAuth setup completed.")
+    print(f"Token saved: {token_path}")
+    print("You can now run: python .agents/scripts/sync_keep.py")
 
 
 if __name__ == "__main__":
-    setup()
+    main()

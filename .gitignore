@@ -11,3 +11,8 @@
 # Google Keep 認証トークン（誤ってVault内に置いた場合の保護）
 .keep_token
 *.keep_token
+
+# KeepSidian generated files
+Daily/Inbox/media/
+Daily/Inbox/_KeepSidianLogs/
+.obsidian/plugins/keepsidian/logs/
