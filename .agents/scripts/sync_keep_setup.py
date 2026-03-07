@@ -44,10 +44,16 @@ def setup():
 
     try:
         import gpsoauth
+        import uuid
+        import platform
+        import socket
         
         # gpsoauthを使用してマスタートークンを取得
-        # Android device ID (適当な16進数16桁)
-        android_id = "9774d56d682e549c"
+        # 有効な形式の Android device ID を生成 (ランダムな16桁の16進数)
+        import random
+        android_id = "".join(random.choice("0123456789abcdef") for _ in range(16))
+            
+        print(f"Android ID '{android_id}' で認証を試みます...")
         
         master_response = gpsoauth.perform_master_login(email, password, android_id)
         
