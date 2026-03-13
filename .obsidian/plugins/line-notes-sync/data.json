@@ -15,8 +15,8 @@
   "syncImages": true,
   "imageFolderPath": "LINE/images",
   "imageFileNameTemplate": "{date}-{messageId}",
-  "subscriptionStatus": "free",
-  "imageCount": 1,
+  "subscriptionStatus": "past_due",
+  "imageCount": 2,
   "freeLimit": 10,
   "encryptionKeys": {
     "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0WyR7V0NyX4IWFFmauB+\nUEnUEI7Tzl/GYIyWrE+cntYgCg/rkDqfQ0Uqa9hp15Ys1jZajCRI143QI/iBS+5E\nAePXMTNxZyKJIRln20BDr3m3JgBR5TIXKK8lBdDKg31cRQTce3IwoPZZ3F2JbkbI\nxob/o95Csszy4x2eu4NqoPc+w2J6sGD6+ciWuSONkon6LXmInqjL29LDadW7Al7h\nAaZfdqcbrtfVZ4qoq3ZVeZtXdGTkf/+UsASjx3TbH9IurcpCDbp3XCLd9tMGct3M\nr03DdWt19wfredLenXkaLRHJMGI6Zp6toNPQYAz/Egp5Kp3uSCdSgcdnb1PJSdzf\ngQIDAQAB\n-----END PUBLIC KEY-----",
