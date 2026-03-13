@@ -65,4 +65,4 @@ KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox
 
 ## 運用ルール詳細
 
-詳細なルール（Google Keepラベル運用・Inbox整形フロー・KeepSidian/Git運用）は `VAULT_RULES.md` を参照すること。
+詳細なルール（LINEメモ運用・整形フロー・Git運用）は `VAULT_RULES.md` を参照すること。
