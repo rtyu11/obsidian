@@ -15,14 +15,17 @@ Source/OCR/       ← OCR文字起こし原文（手動追加・編集禁止）
 Notes/Books/      ← 本1冊ごとのノート（ハイライト要約＋気づき）
 Notes/Topics/     ← キーワード・テーマごとの横断ノート（複数の本にまたがる気づき）
 
-Daily/Inbox/      ← Google Keepからの生メモ（整形前・一時置き場。整形後は削除）
-
-Ideas/            ← アイデア・企画・着想（Keepから・会話中・本からを問わず集約）
-Tasks/            ← 課題・やること（Keepから・会話中・本からを問わず集約）
+Ideas/            ← アイデア・企画・着想（LINEから・会話中・本からを問わず集約）
+Tasks/            ← 課題・やること（LINEから・会話中・本からを問わず集約）
 Memo/             ← 雑多メモ・気づき・単発の考察
 Quotes/           ← 名言・格言（名言集.md に追記）
 
 Insights/         ← AIとの会話で生まれた統合的な思考の記録（日付-テーマ.md形式）
+
+LINE/             ← line-notes-syncが同期するLINEメモ（テキスト・画像）
+LINE/images/      ← 本ページのLINE送付画像
+LINE/pdfs/        ← LINEから送付されたPDF
+LINE/audio/       ← 音声ファイル（処理対象外・手動転記要）
 ```
 
 ---
@@ -60,25 +63,30 @@ AIが何かを出力・提案する際は、必ず保存先を明示すること
 
 ---
 
-## Google Keep ラベル運用
+## LINE メモ運用
 
-スマホでの音声入力メモは Google Keep を使い、以下のラベルで分類する：
+スマホからのメモはLINEで送信する。line-notes-sync プラグインが自動的に `LINE/` フォルダへ同期する。
 
-| ラベル名 | 用途 | 整形後の行き先 |
+| コンテンツ種別 | LINEでの送り方 | 整形後の行き先 |
 |---|---|---|
-| `ob-ideas` | 気づき・発見・アイデア | `Ideas/アイデアリスト.md` |
-| `ob-tasks` | 解決したい課題・やること | `Tasks/課題リスト.md` |
-| `ob-memo` | 雑多・どれでもない | `Memo/メモリスト.md` |
-| `ob-quotes` | 名言・格言 | `Quotes/名言集.md` |
+| アイデア・発見 | テキスト送信（任意で末尾に `#ideas`） | `Ideas/アイデアリスト.md` |
+| 課題・やること | テキスト送信（任意で末尾に `#tasks`） | `Tasks/課題リスト.md` |
+| 雑多メモ | テキスト送信 | `Memo/メモリスト.md` |
+| 名言・格言 | テキスト送信（任意で末尾に `#quotes`） | `Quotes/名言集.md` |
+| 本のページ写真 | 画像送信 | `Source/OCR/` + 各転送先 |
+| 手書きメモ写真 | 画像送信 | 種別に応じて自動分類 |
+
+ラベルなしの場合はAIが内容から自動分類する。分類が曖昧な場合は複数フォルダへ同時追記する。
 
 ---
 
-## Inbox 整形フロー
+## LINE 整形フロー
 
-1. KeepSidianが起動時に自動で `Daily/Inbox/` へメモを取り込む
-2. 「Inboxを整形して」と指示する
-3. AIがラベルに従い各フォルダへ振り分け・追記する
-4. `Daily/Inbox/` の元ファイルは整形後に削除する
+1. line-notes-sync が起動時に自動で `LINE/` へメモを取り込む
+2. 「LINEを処理して」と指示する
+3. AIがコンテンツ種別に従い各フォルダへ振り分け・追記する
+4. `LINE/*.md` の元ファイルは整形後に削除する
+5. 画像・PDFは `_processed_` プレフィックスを付けてリネームする（削除しない）
 
 ---
 
@@ -133,25 +141,21 @@ AIが何かを出力・提案する際は、必ず保存先を明示すること
 
 ---
 
-## KeepSidian / Git 運用ルール（2026-03-14更新）
+## LINE / Git 運用ルール（2026-03-14更新）
 
 ### 前提
-- Google Keep連携はKeepSidianを使う。
-- KeepSidian設定: `Save location = Daily/Inbox`。
+- LINE連携は line-notes-sync プラグインを使う。
+- 設定: `Note folder path = LINE`、`Image folder path = LINE/images`。
 - 同期タイミング: `Sync on startup = ON`、`Auto sync = OFF`。必要な時だけ手動同期。
 
 ### Gitで管理しないもの
-- `Daily/Inbox/`（取り込み用の一時領域）
-- `Daily/Inbox/media/`（添付ファイル）
-- `Daily/Inbox/_KeepSidianLogs/`（ログ）
-- `.obsidian/plugins/keepsidian/`（端末依存設定・トークン）
+- `LINE/`（取り込み用の一時領域）
+- `LINE/images/`（画像ファイル）
+- `LINE/pdfs/`（PDFファイル）
+- `LINE/audio/`（音声ファイル）
+- `.obsidian/plugins/line-notes-sync/data.json`（認証情報・暗号化キーを含む）
 - Gitで同期するのは、整形後ノートと運用ルール・スクリプトのみ。
 
-### 端末別運用
-- メインPC・自宅PC: KeepSidianをそれぞれ設定し、必要時に手動同期。
-- スマホ: Vaultは閲覧中心で編集しない。
-
 ### コンフリクト回避
-- Keepの生データはGitで配らない。
+- LINEの生データはGitで配らない。
 - 整形後のノートだけをGitで同期する。
-- 競合が出たらInbox側ではなく、整形後ノート側で解消する。

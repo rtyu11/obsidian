@@ -1,19 +1,23 @@
 ---
 name: Inbox Processor
-description: 「INBOXを整形して」がトリガーとなり、Daily/Inbox/内のKeepメモをラベルに従ってDailyフォルダへ振り分け、Inbox原本を削除する。
+description: 「INBOXを整形して」がトリガーとなり、Inbox/内のKeepメモをラベルに従って各フォルダへ振り分け、Inbox原本を削除する。
 ---
+
+> [!NOTE] このスキルは廃止済みです
+> Google Keep / KeepSidian の廃止に伴い使用しません。
+> 代わりに `.agents/skills/line_inbox/SKILL.md` を使用してください。
 
 # Inbox Processor Skill
 
 ## トリガー条件
-- **「INBOXを整形して」**：`Daily/Inbox/` 内のKeepメモをラベルに従ってDailyフォルダへ振り分け、Inbox原本を削除する
+- **「INBOXを整形して」**：`Inbox/` 内のKeepメモをラベルに従って各フォルダへ振り分け、Inbox原本を削除する
 
 ---
 
 ## フォルダ構成
 
 ```
-Daily/Inbox/               ← KeepSidian同期後の一時置き場（整形前）
+Inbox/                     ← KeepSidian同期後の一時置き場（整形前）
   _KeepSidianLogs/         ← KeepSidianのログ（削除禁止）
   media/                   ← 添付ファイル（削除禁止）
   [Keepのタイトル].md      ← KeepSidianが生成（ファイル名＝Keepのタイトルそのまま）
@@ -37,18 +41,18 @@ Quotes/           ← 名言・格言
 
 ### 1. 文字化け修復（振り分けの前に必ず実行）
 
-`Daily/Inbox/*.md` の本文が `繧/縺/繝` などの崩れた文字になることがある（KeepSidian経由の取り込みで発生しやすい）。
+`Inbox/*.md` の本文が `繧/縺/繝` などの崩れた文字になることがある（KeepSidian経由の取り込みで発生しやすい）。
 振り分けの前に次を実行して修復する：
 
 ```bash
 python ".agents/scripts/repair_keep_mojibake.py" --apply
 ```
 
-- 対象：`Daily/Inbox/*.md`（`.gitkeep` を除く）
+- 対象：`Inbox/*.md`（`.gitkeep` を除く）
 - スクリプトが存在しない場合はスキップしてよい
 
 ### 2. 対象ファイルの検出
-- `Daily/Inbox/` 内の `.md` ファイルを一覧取得する（`_KeepSidianLogs/`・`media/` フォルダは除外）
+- `Inbox/` 内の `.md` ファイルを一覧取得する（`_KeepSidianLogs/`・`media/` フォルダは除外）
 - ファイルがなければ「Inboxは空でした」と伝えて終了する
 
 ### 3. ラベルと振り分け先の決定
@@ -169,7 +173,7 @@ source: google-keep
 ---
 
 ### 6. Inbox原本の削除
-- 振り分け完了後、`Daily/Inbox/` の元ファイルを削除する
+- 振り分け完了後、`Inbox/` の元ファイルを削除する
 - **`_KeepSidianLogs/` フォルダは削除しない**
 
 ### 7. 完了報告

@@ -12,7 +12,7 @@
 
 # ---------------------------------------------------
 # [マシン固有] Obsidianアプリ設定
-# KeepSidianのLastSuccessfulSyncDateなどPC固有の値が入るため除外
+# PC固有の値が入るため除外
 # ---------------------------------------------------
 .obsidian/app.json
 
@@ -21,10 +21,6 @@
 # ---------------------------------------------------
 # kindle-plugin: isLoggedIn / lastSyncDate などPC固有情報を含む
 .obsidian/plugins/obsidian-kindle-plugin/data.json
-
-# KeepSidian: 認証情報・ローカル状態
-.obsidian/plugins/keepsidian/
-.obsidian/plugins/keepsidian/logs/
 
 # smart-composer: ベクターDB等ローカルキャッシュ
 .obsidian/plugins/smart-composer/
@@ -59,18 +55,13 @@ Thumbs.db
 .agents/state/
 
 # ---------------------------------------------------
-# Google Keep / KeepSidian
+# LINE / line-notes-sync
 # ---------------------------------------------------
-# 認証トークン
-.keep_token
-*.keep_token
+# 同期された生メモ・画像はGit管理対象外（一時インポートエリア）
+LINE/
 
-# KeepSidian 生成ファイル
-Daily/Inbox/media/
-Daily/Inbox/_KeepSidianLogs/
-
-# Inbox は一時インポートエリアのため除外
-Daily/Inbox/
+# line-notes-sync プラグイン設定（認証情報・暗号化キーを含む）
+.obsidian/plugins/line-notes-sync/data.json
 
 # ---------------------------------------------------
 # 作業用テキストファイル（ローカルのみ）
