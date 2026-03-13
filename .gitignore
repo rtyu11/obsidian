@@ -22,6 +22,9 @@
 # kindle-plugin: isLoggedIn / lastSyncDate などPC固有情報を含む
 .obsidian/plugins/obsidian-kindle-plugin/data.json
 
+# KeepSidian: 廃止済み（認証情報・ローカル状態）
+.obsidian/plugins/keepsidian/
+
 # smart-composer: ベクターDB等ローカルキャッシュ
 .obsidian/plugins/smart-composer/
 
@@ -53,6 +56,11 @@ Thumbs.db
 # エージェント実行ログ・状態（ランタイム生成物）
 .agents/logs/
 .agents/state/
+
+# ---------------------------------------------------
+# KeepSidian 旧インボックス（廃止済み）
+# ---------------------------------------------------
+Daily/Inbox/
 
 # ---------------------------------------------------
 # LINE / line-notes-sync
