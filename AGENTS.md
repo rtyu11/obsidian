@@ -56,7 +56,7 @@ KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox
 
 | トリガー | スキルファイル | 注意 |
 |---------|-------------|------|
-| 「LINEを処理して」「LINEを整形して」 | `.agents/skills/line_inbox/SKILL.md` | Claudeのビジョン機能が必要（画像処理時） |
+| 「LINEを処理して」「LINEを整形して」 | `.agents/skills/line_inbox/SKILL.md` | Claudeのビジョン機能が必要（画像処理時）。音声は事前に `python .agents/scripts/gemini_transcribe.py` が必要（GEMINI_API_KEY要設定） |
 | 「OCR処理して」「LINE画像をOCRして」または本の表紙画像の添付 | `.agents/skills/book_highlighter/SKILL.md` | |
 | 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` | |
 | 「Scribeを処理して」「手書きメモを処理して」 | `.agents/skills/scribe_inbox/SKILL.md` | Claudeのビジョン機能が必要。Gemini等では動作しない場合あり |
