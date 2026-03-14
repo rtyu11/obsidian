@@ -29,8 +29,8 @@ Quotes/           ← 名言・格言（名言集.md に追記。出典・日付
 
 Insights/         ← AIとの会話で生まれた統合的な思考の記録（日付-テーマ.md形式）
 
-LINE/             ← line-notes-syncが同期するLINEメモ（テキスト・画像）
-LINE/images/      ← 本ページのLINE送付画像（book_highlighter / line_inbox用）
+LINE/             ← Make.comが同期するLINEテキストメモ
+LINE/images/      ← Make.comが同期するLINE送付画像（book_highlighter / line_inbox用）
 LINE/pdfs/        ← LINEから送付されたPDF（line_inbox用）
 LINE/audio/       ← 音声ファイル（処理対象外・手動転記要）
 KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox用）

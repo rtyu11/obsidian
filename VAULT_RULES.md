@@ -22,8 +22,8 @@ Quotes/           ← 名言・格言（名言集.md に追記）
 
 Insights/         ← AIとの会話で生まれた統合的な思考の記録（日付-テーマ.md形式）
 
-LINE/             ← line-notes-syncが同期するLINEメモ（テキスト・画像）
-LINE/images/      ← 本ページのLINE送付画像
+LINE/             ← Make.comが同期するLINEテキストメモ
+LINE/images/      ← Make.comが同期するLINE送付画像
 LINE/pdfs/        ← LINEから送付されたPDF
 LINE/audio/       ← 音声ファイル（処理対象外・手動転記要）
 ```
@@ -65,7 +65,7 @@ AIが何かを出力・提案する際は、必ず保存先を明示すること
 
 ## LINE メモ運用
 
-スマホからのメモはLINEで送信する。line-notes-sync プラグインが自動的に `LINE/` フォルダへ同期する。
+スマホからのメモはLINEで送信する。Make.comが自動的に OneDrive 経由で `LINE/` 等のフォルダへ同期する。
 
 | コンテンツ種別 | LINEでの送り方 | 整形後の行き先 |
 |---|---|---|
@@ -83,7 +83,7 @@ AIが何かを出力・提案する際は、必ず保存先を明示すること
 
 ## LINE 整形フロー
 
-1. line-notes-sync が起動時に自動で `LINE/` へメモを取り込む
+1. Make.com が常時自動で `LINE/` 配下へメモを取り込む
 2. 「LINEを処理して」と指示する
 3. AIがコンテンツ種別に従い各フォルダへ振り分け・追記する
 4. `LINE/*.md` の元ファイルは整形後に削除する
@@ -145,9 +145,9 @@ AIが何かを出力・提案する際は、必ず保存先を明示すること
 ## LINE / Git 運用ルール（2026-03-14更新）
 
 ### 前提
-- LINE連携は line-notes-sync プラグインを使う。
-- 設定: `Note folder path = LINE`、`Image folder path = LINE/images`。
-- 同期タイミング: `Sync on startup = ON`、`Auto sync = OFF`。必要な時だけ手動同期。
+- LINE連携は Make.com と OneDrive の自動連携を使う。
+- 設定: Makeのシナリオに従い、テキストは `LINE/`、画像は `LINE/images/`、音声は `LINE/audio/` へ保存。
+- 同期タイミング: 24時間常時稼働。OneDrive経由でPC起動時・バックグラウンドで自動同期される。
 
 ### Gitで管理しないもの
 - `LINE/`（取り込み用の一時領域）
