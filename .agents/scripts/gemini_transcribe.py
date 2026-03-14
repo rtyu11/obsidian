@@ -54,28 +54,34 @@ def get_vault_path() -> Path:
 def transcribe_audio(audio_path: Path, api_key: str) -> str:
     """Gemini API で音声ファイルを文字起こし・整形する"""
     try:
-        import google.generativeai as genai
+        from google import genai
     except ImportError:
-        print("ERROR: google-generativeai がインストールされていません。")
-        print("  pip install google-generativeai")
+        print("ERROR: google-genai がインストールされていません。")
+        print("  pip install google-genai")
         sys.exit(1)
 
-    genai.configure(api_key=api_key)
+    import time
+    client = genai.Client(api_key=api_key)
 
     print(f"  アップロード中: {audio_path.name}")
-    audio_file = genai.upload_file(str(audio_path), mime_type=_guess_mime(audio_path))
+    from google.genai import types as genai_types
+    audio_file = client.files.upload(
+        file=str(audio_path),
+        config=genai_types.UploadFileConfig(mime_type=_guess_mime(audio_path))
+    )
 
     # アップロード完了を待機
-    import time
     while audio_file.state.name == "PROCESSING":
         time.sleep(2)
-        audio_file = genai.get_file(audio_file.name)
+        audio_file = client.files.get(name=audio_file.name)
 
     if audio_file.state.name == "FAILED":
         raise RuntimeError(f"Gemini へのアップロードに失敗しました: {audio_path.name}")
 
-    model = genai.GenerativeModel("gemini-1.5-pro")
-    response = model.generate_content([TRANSCRIBE_PROMPT, audio_file])
+    response = client.models.generate_content(
+        model="gemini-3.1-flash-lite-preview",
+        contents=[TRANSCRIBE_PROMPT, audio_file]
+    )
     return response.text.strip()
 
 
