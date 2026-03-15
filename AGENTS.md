@@ -50,6 +50,19 @@ KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox
 
 ---
 
+## 作業開始プロトコル
+
+トリガーワードを受け取ったら、**返答前に必ず対応するSKILL.mdを読み込んでから実行すること**。スキルファイルに書かれた手順に厳密に従う。
+
+| トリガー | 読み込むファイル |
+|---------|----------------|
+| 「Scribeを処理して」「手書きメモを処理して」 | `.agents/skills/scribe_inbox/SKILL.md` |
+| 「LINEを処理して」「LINEを整形して」 | `.agents/skills/line_inbox/SKILL.md` |
+| 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` |
+| 「OCR処理して」「LINE画像をOCRして」または本の表紙画像の添付 | `.agents/skills/book_highlighter/SKILL.md` |
+
+---
+
 ## スキル一覧
 
 タスクに応じて対応するスキルファイルを参照すること。
