@@ -51,21 +51,29 @@ Insights/                 ← 深い考察・思考の保存先
 
 #### 3-1. ビジョン解析（高速化版）
 
-**ブラウザは使わない。** 以下のPythonコマンドでPDFを一時PNG画像に変換し、`view_file`ツールで直接読み取る。
+**ブラウザは使わない。** 以下のPythonコマンドでPDFを一時PNG画像に変換し、`Read`ツールで直接読み取る。
 
-```powershell
+**注意：日本語パスをコマンドライン引数に渡すとエンコードエラーになる。** 必ず以下の方式（`os.listdir` でファイルを特定してPythonコード内でパスを組み立てる）を使うこと。
+
+```python
 python -c "
-import fitz, sys, os
-doc = fitz.open(sys.argv[1])
-for i, page in enumerate(doc):
-    pix = page.get_pixmap(dpi=150)
-    out = os.path.join(os.environ['TEMP'], f'scribe_page_{i}.png')
-    pix.save(out)
-    print(out)
-" "[PDFの絶対パス]"
+import fitz, os
+folder = os.path.join(os.environ['USERPROFILE'], 'OneDrive', 'ドキュメント', 'Obsidian Vault', 'obsidian', 'KindleInbox')
+files = [f for f in os.listdir(folder) if f.endswith('.pdf') and not f.startswith('_processed_')]
+if files:
+    pdf_path = os.path.join(folder, files[0])
+    doc = fitz.open(pdf_path)
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(dpi=150)
+        out = os.path.join(os.environ['TEMP'], f'scribe_page_{i}.png')
+        pix.save(out)
+        print(out)
+    print(f'Total pages: {len(doc)}')
+"
 ```
 
-出力されたPNGパスに対して `view_file` ツールで画像を読み取り、手書き内容を解釈する。
+複数PDFがある場合は `files[0]` を `files[1]` 等に変えて繰り返す。
+出力されたPNGパスを `Read` ツールで読み取り、手書き内容を解釈する。
 複数ページがある場合は全ページ分繰り返す。
 一時画像は処理後に削除不要（次回上書きされる）。
 
@@ -175,7 +183,7 @@ source: scribe
 
 タグ：`ideas` / `tasks` / `memo` ＋ 内容キーワード2〜4個
 
-> **原文画像リンク**：独立ファイルには必ず `原文画像:` フィールドを付与し、対応するPNGページ番号を記載する（例：複数ページの場合は `![[scribe_page_3.png]] ![[scribe_page_4.png]]`）。意味が分からなくなった時に原文を参照できるようにするため。
+> **原文PDFリンク**：独立ファイルには必ず `原文PDF:` フィールドを付与し、処理元PDFを `[[_processed_ファイル名.pdf]]` 形式で記載する。意味が分からなくなった時に原文を参照できるようにするため。
 
 ---
 
@@ -274,7 +282,20 @@ source: scribe
 
 各PDFの処理が完了したら、ファイル名の先頭に `_processed_` を付けてリネームする。
 
-例：`sketch-2026-03-12.pdf` → `_processed_sketch-2026-03-12.pdf`
+**注意：日本語パスのため、必ずPythonで実行すること。**
+
+```python
+python -c "
+import os
+folder = os.path.join(os.environ['USERPROFILE'], 'OneDrive', 'ドキュメント', 'Obsidian Vault', 'obsidian', 'KindleInbox')
+files = [f for f in os.listdir(folder) if f.endswith('.pdf') and not f.startswith('_processed_')]
+if files:
+    old = os.path.join(folder, files[0])
+    new = os.path.join(folder, '_processed_' + files[0])
+    os.rename(old, new)
+    print('Renamed:', files[0])
+"
+```
 
 これにより次回実行時に再処理されない。
 
