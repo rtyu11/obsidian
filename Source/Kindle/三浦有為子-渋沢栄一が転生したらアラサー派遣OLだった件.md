@@ -2,7 +2,7 @@
 kindle-bookId: '26595'
 kindle-title: 渋沢栄一が転生したらアラサー派遣OLだった件
 kindle-author: 三浦有為子
-kindle-highlightsCount: 10
+kindle-highlightsCount: 14
 kindle-asin: B0DP859ZFP
 kindle-lastAnnotatedDate: Invalid date
 kindle-bookImageUrl: 'https://m.media-amazon.com/images/I/81a5wHrS5-L._SX1024.jpg'
@@ -45,5 +45,18 @@ kindle-bookImageUrl: 'https://m.media-amazon.com/images/I/81a5wHrS5-L._SX1024.jp
 
 ---
 「勉強は好きですよ。知らない事を知るのは楽しいし、ゲームでいうところの強化アイテムが溜まっていくような楽しさはあります。でも、だからそれがなんだっていうんですか？　自分が戦うべきゲームが分かってないのに、強化アイテムばかり溜めたところで」 　洋は再び嘆息した。この頃には、華子はすっかりこの若者に魅せられていた。 「洋くんの考えている事、すごくよく分かるわ。 　渋沢も『論語と算盤』の中で言っているよね。『 今の青年はただ学問のために、学問をしているのである。初より確然たる目的なく漠然と学問する結果、実際社会に出てから、我は何の為に学びしやというがごとき疑惑に、襲われる青年が往々にしてある』と」 — location: [1017](kindle://book?action=open&asin=B0DP859ZFP&location=1017) ^ref-58141
+
+---
+
+「信用こそが資本である。 — location: [1740](kindle://book?action=open&asin=B0DP859ZFP&location=1740) ^ref-32364
+
+---
+学問は一種の経験であり、経験はまた一種の学問である。 — location: [1951](kindle://book?action=open&asin=B0DP859ZFP&location=1951) ^ref-32762
+
+---
+た。善意の無料であるというだけで群がり、その善意につけこみ、自分たちの欲を通そうとする。 — location: [2038](kindle://book?action=open&asin=B0DP859ZFP&location=2038) ^ref-2684
+
+---
+「ほら、華子ちゃん言っていたでしょ？　なんで『ランチ』じゃなくて、『キッチン』なんだって。……私ね、ワゴンで朝ごはんを販売してみたらどうかって、ずっと思ってたんだよね」 　洋を妊娠する以前の事、民子は仕事で台湾に行ったことがあるという。台湾では気候の問題もあり、家で主婦が調理をする事はほとんどない。その代わり、安価に食事が売られている屋台が多くあり、そこで食事を済ませたり、買って持ち帰ったりするのだという。 「夕食だけじゃなくて、朝食もそうなの。会社の近くにそれこそ、屋台があって、具沢山のおにぎりなんかが売られているの。日本のおにぎりみたいに丸くなくて、細長く握られている中に煮卵とか、お肉とか、青菜とかいろいろ入っていて、」 「栄養バランスがいい」 「そう！　いろいろ難しく考えなくても、おにぎり１つでいいのよ。 　朝のコンビニでおにぎりやサンドイッチを買って、会社で手軽に朝食を済ませている若い人って多いと思うんだ。そういう人にニーズないかなって……」 — location: [2047](kindle://book?action=open&asin=B0DP859ZFP&location=2047) ^ref-41865
 
 ---
