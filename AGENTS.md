@@ -63,6 +63,7 @@ KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox
 | 「LINEを処理して」「LINEを整形して」 | `.agents/skills/line_inbox/SKILL.md` |
 | 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` |
 | 「OCR処理して」「LINE画像をOCRして」または本の表紙画像の添付 | `.agents/skills/book_highlighter/SKILL.md` |
+| 「Kindleをスキャンして」「Kindle OCRして」 | `.agents/skills/kindle_ocr/SKILL.md` |
 
 ---
 
@@ -77,6 +78,7 @@ KindleInbox/      ← ScribePDF へのシンボリックリンク（scribe_inbox
 | 「OCR処理して」「LINE画像をOCRして」または本の表紙画像の添付 | `.agents/skills/book_highlighter/SKILL.md` | |
 | 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` | |
 | 「Scribeを処理して」「手書きメモを処理して」 | `.agents/skills/scribe_inbox/SKILL.md` | Claudeのビジョン機能が必要。Gemini等では動作しない場合あり |
+| 「Kindleをスキャンして」「Kindle OCRして」 | `.agents/skills/kindle_ocr/SKILL.md` | GEMINI_API_KEY要設定。playwright・google-genai・pillowのインストールが必要 |
 
 ---
 
