@@ -455,6 +455,11 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
 # ---------- エントリーポイント ----------
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Kindle Cloud Reader OCR Pipeline")
+    parser.add_argument("--one", action="store_true", help="1冊だけ処理して終了する")
+    args = parser.parse_args()
+
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("ERROR: 環境変数 GEMINI_API_KEY が設定されていません。")
@@ -495,6 +500,8 @@ def main():
 
                 processed = log.get("processed", [])
                 unprocessed = [b for b in books if b["title"] not in processed]
+                if args.one:
+                    unprocessed = unprocessed[:1]
                 print(f"\n未処理書籍: {len(unprocessed)} / {len(books)} 冊")
 
                 for book in unprocessed:
