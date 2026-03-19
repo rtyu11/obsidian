@@ -76,6 +76,24 @@ def save_log(vault: Path, log: dict) -> None:
     tmp.replace(log_path)
 
 
+# ---------- スキップリスト ----------
+SKIP_LIST_PATH = "Tasks/kindle_skip_list.md"
+
+def load_skip_list(vault: Path) -> list[str]:
+    """Tasks/kindle_skip_list.md のチェック済み項目をスキップタイトルとして返す"""
+    skip_path = vault / SKIP_LIST_PATH
+    if not skip_path.exists():
+        return []
+    skipped = []
+    for line in skip_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line.startswith("- [x]") or line.startswith("- [X]"):
+            title = line[5:].strip()
+            if title:
+                skipped.append(title)
+    return skipped
+
+
 # ---------- ユーティリティ ----------
 def sanitize_filename(title: str) -> str:
     """Windows禁止文字を除去してファイル名に使える文字列を返す"""
@@ -187,11 +205,7 @@ def open_kindle_library(page) -> None:
     # ログイン済みの場合はライブラリが表示される
     # ライブラリの書籍タイル、またはログイン画面が現れるまで待機
     try:
-        page.wait_for_selector(
-            '[data-testid="content-tile-list"], .kp-notebook-library-each-book, '
-            '#library-container, .book-list, .Ebook-shelf',
-            timeout=30000
-        )
+        page.wait_for_selector('[role="listitem"]', timeout=30000)
     except Exception:
         print("  ライブラリ読み込みタイムアウト。ログインが必要な場合は手動でログインしてください。")
         print("  ログイン完了後 Enter を押してください: ", end="", flush=True)
@@ -205,15 +219,10 @@ def get_library_books(page) -> list[dict]:
 
     # 仮想スクロールで全タイルを読み込む
     prev_count = 0
-    for _ in range(50):  # 最大50スクロール
+    for _ in range(50):
         page.keyboard.press("End")
         page.wait_for_timeout(800)
-        tiles = page.query_selector_all(
-            '[data-testid="content-tile-list"] > *, '
-            '.book-list .book-container, '
-            '.kp-notebook-library-each-book, '
-            '.Ebook-shelf .book'
-        )
+        tiles = page.query_selector_all('[role="listitem"]')
         if len(tiles) == prev_count:
             break
         prev_count = len(tiles)
@@ -222,22 +231,32 @@ def get_library_books(page) -> list[dict]:
     books = []
     for tile in tiles:
         try:
-            # 複数のセレクタパターンを試みる
-            title_el = (
-                tile.query_selector('[data-testid="content-title"]') or
-                tile.query_selector('.book-title') or
-                tile.query_selector('.title') or
-                tile.query_selector('h2') or
-                tile.query_selector('h3')
-            )
-            if title_el:
-                title = title_el.inner_text().strip()
-            else:
-                title = tile.get_attribute("aria-label") or ""
-                title = title.strip()
+            title = ""
 
-            if title:
-                books.append({"title": title, "tile": tile})
+            # 1. aria-label を最優先（書籍名が入っていることが多い）
+            aria = tile.get_attribute("aria-label") or ""
+            if aria.strip():
+                title = aria.strip()
+
+            # 2. data-asin がある要素のテキストから取得
+            if not title:
+                asin_el = tile.query_selector('[data-asin]')
+                if asin_el:
+                    title = (asin_el.get_attribute("aria-label") or "").strip()
+
+            # 3. img の alt テキスト（書籍カバー画像の alt はタイトルのことが多い）
+            if not title:
+                img = tile.query_selector('img[alt]')
+                if img:
+                    title = (img.get_attribute("alt") or "").strip()
+
+            # 4. フォールバック: tile のテキスト全体の1行目
+            if not title:
+                raw = tile.inner_text().strip()
+                title = raw.split("\n")[0].strip()
+
+            if title and title not in [b["title"] for b in books]:
+                books.append({"title": title})
         except Exception:
             continue
 
@@ -250,33 +269,42 @@ def open_book(page, book: dict) -> dict:
     title = book["title"]
     print(f"\n書籍を開いています: {title}")
 
-    book["tile"].click()
+    # ライブラリ画面からタイトルで書籍タイルを再検索してクリック
+    # （open_kindle_library後にDOMが再構築されるため毎回検索が必要）
+    tile = None
+    tiles = page.query_selector_all('[role="listitem"]')
+    for t in tiles:
+        try:
+            aria = t.get_attribute("aria-label") or ""
+            img = t.query_selector('img[alt]')
+            img_alt = img.get_attribute("alt") if img else ""
+            raw = t.inner_text().strip().split("\n")[0]
+            if title in (aria, img_alt, raw):
+                tile = t
+                break
+        except Exception:
+            continue
 
-    # リーダーの読書エリアが現れるまで待機（最大60秒）
-    try:
-        page.wait_for_selector(
-            '#book-reader, .book-reader, iframe#KindleReaderIframe, '
-            '[data-testid="reader-container"], .kr-page-turn-area',
-            timeout=60000
-        )
-    except Exception:
-        print("  リーダー起動タイムアウト。手動で開いて Enter を押してください: ", end="", flush=True)
-        input()
+    if tile is None:
+        raise RuntimeError(f"書籍タイルが見つかりません: {title}")
 
-    page.wait_for_timeout(2000)
+    # Kindleリーダーは別タブで開くため、新しいページ（タブ）を待機する
+    context = page.context
+    with context.expect_page(timeout=30000) as new_page_info:
+        tile.click()
 
-    # 著者情報の取得を試みる（取得できなければ空文字）
-    author = ""
-    try:
-        author_el = page.query_selector(
-            '.book-author, [data-testid="content-author"], .author'
-        )
-        if author_el:
-            author = author_el.inner_text().strip()
-    except Exception:
-        pass
+    reader_page = new_page_info.value
+    print("  新しいタブでリーダーが開きました。読み込み待機中...")
+    reader_page.wait_for_load_state("domcontentloaded", timeout=60000)
+    reader_page.wait_for_timeout(5000)  # レンダリング完了を待つ
+    dismiss_popups(reader_page)  # ウェルカムポップアップを閉じる
+    reader_page.wait_for_timeout(1000)
 
-    return {"title": title, "author": author}
+    # 先頭ページへ移動（Kindleは前回の読書位置を記憶するため）
+    reader_page.keyboard.press("Control+Home")
+    reader_page.wait_for_timeout(1000)
+
+    return {"title": title, "author": "", "reader_page": reader_page}
 
 
 def screenshot_current_page(page, out_path: Path) -> None:
@@ -295,30 +323,45 @@ def screenshot_current_page(page, out_path: Path) -> None:
         page.screenshot(path=str(out_path))
 
 
+def dismiss_popups(page) -> None:
+    """リーダー上のポップアップ・モーダルを閉じる"""
+    for selector in [
+        '[data-testid="backdrop-welcome-popover"]',
+        '[data-testid="welcome-popover-close"]',
+        'button[aria-label="Close"]',
+        '.a-popover-close',
+    ]:
+        try:
+            el = page.query_selector(selector)
+            if el and el.is_visible():
+                el.click(timeout=2000)
+                page.wait_for_timeout(500)
+                break
+        except Exception:
+            continue
+    # Escキーでも試みる
+    try:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+    except Exception:
+        pass
+
+
 def turn_page(page) -> None:
     """右矢印キーでページをめくり、アニメーション完了を待機"""
+    dismiss_popups(page)
     page.keyboard.press("ArrowRight")
     page.wait_for_timeout(500)
 
 
-def close_book(page) -> None:
-    """ライブラリ画面に戻る"""
-    try:
-        # 「戻る」ボタンまたは閉じるボタンを探す
-        back_btn = (
-            page.query_selector('[data-testid="back-to-library"]') or
-            page.query_selector('.close-button') or
-            page.query_selector('[aria-label="ライブラリに戻る"]')
-        )
-        if back_btn:
-            back_btn.click()
-            page.wait_for_timeout(2000)
-        else:
-            page.goto(KINDLE_URL)
-            page.wait_for_timeout(3000)
-    except Exception:
-        page.goto(KINDLE_URL)
-        page.wait_for_timeout(3000)
+def close_book(book_meta: dict) -> None:
+    """リーダータブを閉じてライブラリに戻る"""
+    reader_page = book_meta.get("reader_page")
+    if reader_page:
+        try:
+            reader_page.close()
+        except Exception:
+            pass
 
 
 # ---------- ファイル出力 ----------
@@ -378,6 +421,8 @@ pages: {len(pages)}
 # ---------- 書籍処理ループ ----------
 def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: Path) -> None:
     title = book_meta["title"]
+    # リーダーは別タブで開いているので reader_page を使う
+    reader_page = book_meta.get("reader_page", page)
     print(f"  OCR 処理開始: {title}")
 
     # 再開ページ番号と既存テキストの復元
@@ -388,7 +433,7 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     if start_page > 0:
         print(f"  前回の中断から再開: ページ {start_page} から")
         for _ in range(start_page):
-            turn_page(page)
+            turn_page(reader_page)
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
@@ -396,7 +441,7 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
     while True:
         current_screenshot = tmpdir / f"{sanitize_filename(title)}_page_{n:04d}.png"
-        screenshot_current_page(page, current_screenshot)
+        screenshot_current_page(reader_page, current_screenshot)
 
         # 読了判定（連続同一画像）
         if prev_screenshot and prev_screenshot.exists():
@@ -437,7 +482,7 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
         prev_screenshot = current_screenshot  # パスのみ保持（既に削除済み）
 
-        turn_page(page)
+        turn_page(reader_page)
         time.sleep(RATE_LIMIT_SLEEP)
         n += 1
 
@@ -458,10 +503,11 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Kindle Cloud Reader OCR Pipeline")
     parser.add_argument("--one", action="store_true", help="1冊だけ処理して終了する")
+    parser.add_argument("--list", action="store_true", help="ライブラリの書籍一覧を表示してスキップリストを更新する")
     args = parser.parse_args()
 
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
+    if not api_key and not args.list:
         print("ERROR: 環境変数 GEMINI_API_KEY が設定されていません。")
         print("  Google AI Studio (https://aistudio.google.com) でAPIキーを取得し、")
         print("  環境変数 GEMINI_API_KEY に設定してください。")
@@ -474,7 +520,7 @@ def main():
     print(f"出力先: {ocr_dir}")
 
     log = load_log(vault)
-    client = build_ocr_client(api_key)
+    client = build_ocr_client(api_key) if not args.list else None
 
     # 一時フォルダ（OS の temp 領域、Vault外）
     tmpdir = Path(tempfile.mkdtemp(prefix="kindle_ocr_"))
@@ -498,13 +544,36 @@ def main():
                     print("書籍が見つかりませんでした。ライブラリを確認してください。")
                     return
 
+                if args.list:
+                    # スキップリストに未登録の本を追記して終了
+                    skip_path = vault / SKIP_LIST_PATH
+                    existing = skip_path.read_text(encoding="utf-8") if skip_path.exists() else ""
+                    existing_titles = [l.strip().lstrip("- [x]- [ ]").strip() for l in existing.splitlines() if l.strip().startswith("- [")]
+                    new_lines = []
+                    for b in books:
+                        if b["title"] not in existing_titles:
+                            new_lines.append(f"- [ ] {b['title']}")
+                    if new_lines:
+                        skip_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(skip_path, "a", encoding="utf-8") as f:
+                            f.write("\n" + "\n".join(new_lines) + "\n")
+                        print(f"\n{len(new_lines)} 冊をスキップリストに追加しました: {skip_path}")
+                    else:
+                        print("\nスキップリストはすでに最新です。")
+                    print("\n--- ライブラリ全書籍 ---")
+                    for b in books:
+                        print(f"  {b['title']}")
+                    return
+
                 processed = log.get("processed", [])
-                unprocessed = [b for b in books if b["title"] not in processed]
+                skipped = load_skip_list(vault)
+                unprocessed = [b for b in books if b["title"] not in processed and b["title"] not in skipped]
                 if args.one:
                     unprocessed = unprocessed[:1]
                 print(f"\n未処理書籍: {len(unprocessed)} / {len(books)} 冊")
 
                 for book in unprocessed:
+                    book_meta = None
                     try:
                         open_kindle_library(page)
                         book_meta = open_book(page, book)
@@ -514,10 +583,9 @@ def main():
                         raise
                     except Exception as e:
                         print(f"  ERROR 書籍処理失敗 ({book['title']}): {e}")
-                        try:
-                            close_book(page)
-                        except Exception:
-                            pass
+                    finally:
+                        if book_meta:
+                            close_book(book_meta)
 
                 print("\n全書籍の処理が完了しました。")
 
