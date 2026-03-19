@@ -18,6 +18,7 @@ import time
 import tempfile
 import shutil
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -27,6 +28,7 @@ GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 RATE_LIMIT_SLEEP = 1.5      # Gemini APIコール間のスリープ（秒）
 MAX_RETRIES = 3             # Gemini APIリトライ上限
 DUPLICATE_THRESHOLD = 5     # 連続同一スクリーンショット数で読了と判定
+MIN_PAGES_FOR_COMPLETE = 10 # これ未満で終了した場合は読込失敗の可能性が高い
 
 OCR_PROMPT = """この画像はKindleの電子書籍のページです。ページの文字をMarkdownに変換してください。
 
@@ -197,10 +199,52 @@ def launch_browser(pw):
     return browser, page
 
 
+def is_kindle_pc_running() -> bool:
+    """WindowsのKindle for PCプロセス起動有無を返す"""
+    if os.name != "nt":
+        return False
+    try:
+        proc = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq Kindle.exe"],
+            capture_output=True,
+            text=True,
+            encoding="cp932",
+            errors="ignore",
+            check=False,
+        )
+        return "Kindle.exe" in proc.stdout
+    except Exception:
+        return False
+
+
+def close_kindle_pc() -> bool:
+    """Kindle for PCを終了する。終了指示を出せたらTrue"""
+    if os.name != "nt":
+        return False
+    try:
+        subprocess.run(
+            ["taskkill", "/IM", "Kindle.exe", "/F"],
+            capture_output=True,
+            text=True,
+            encoding="cp932",
+            errors="ignore",
+            check=False,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def open_kindle_library(page) -> None:
     """Kindle Cloud Reader のライブラリ画面に遷移して待機"""
+    if is_kindle_pc_running():
+        print("Kindle for PC が起動中のため終了します...")
+        close_kindle_pc()
+        page.wait_for_timeout(800)
+
     print(f"Kindle Cloud Reader を開いています: {KINDLE_URL}")
     page.goto(KINDLE_URL, timeout=60000)
+    dismiss_library_popups(page)
 
     # ログイン済みの場合はライブラリが表示される
     # ライブラリの書籍タイル、またはログイン画面が現れるまで待機
@@ -211,6 +255,7 @@ def open_kindle_library(page) -> None:
         print("  ログイン完了後 Enter を押してください: ", end="", flush=True)
         input()
         page.wait_for_timeout(3000)
+    dismiss_library_popups(page)
 
 
 def get_library_books(page) -> list[dict]:
@@ -268,6 +313,7 @@ def open_book(page, book: dict) -> dict:
     """書籍タイルをクリックしてリーダーを起動、メタデータを返す"""
     title = book["title"]
     print(f"\n書籍を開いています: {title}")
+    dismiss_library_popups(page)
 
     # ライブラリ画面からタイトルで書籍タイルを再検索してクリック
     # （open_kindle_library後にDOMが再構築されるため毎回検索が必要）
@@ -289,11 +335,30 @@ def open_book(page, book: dict) -> dict:
         raise RuntimeError(f"書籍タイルが見つかりません: {title}")
 
     # Kindleリーダーは別タブで開くため、新しいページ（タブ）を待機する
+    # まれに Kindle for PC が起動してしまうため、その場合はアプリを閉じてリトライする
     context = page.context
-    with context.expect_page(timeout=30000) as new_page_info:
-        tile.click()
+    reader_page = None
+    for attempt in range(3):
+        try:
+            with context.expect_page(timeout=15000) as new_page_info:
+                dismiss_library_popups(page)
+                tile.click()
+            reader_page = new_page_info.value
+            break
+        except Exception:
+            if is_kindle_pc_running():
+                print("  Kindle for PC が起動したため終了して再試行します...")
+                close_kindle_pc()
+                page.wait_for_timeout(1200)
+                continue
+            if attempt < 2:
+                page.wait_for_timeout(800)
+                continue
+            raise RuntimeError("Webリーダーを開けませんでした（Kindle for PCが優先起動している可能性があります）")
 
-    reader_page = new_page_info.value
+    if reader_page is None:
+        raise RuntimeError("Webリーダーを開けませんでした")
+
     print("  新しいタブでリーダーが開きました。読み込み待機中...")
     reader_page.wait_for_load_state("domcontentloaded", timeout=60000)
 
@@ -310,13 +375,6 @@ def open_book(page, book: dict) -> dict:
 
     dismiss_popups(reader_page)  # ウェルカムポップアップを閉じる
     reader_page.wait_for_timeout(1000)
-
-    # 先頭ページへ移動（Kindleは前回の読書位置を記憶するため）
-    # 左矢印を2000回押して先頭まで戻る
-    print("  先頭ページへ移動中...")
-    for _ in range(2000):
-        reader_page.keyboard.press("ArrowLeft")
-    reader_page.wait_for_timeout(3000)
 
     return {"title": title, "author": "", "reader_page": reader_page}
 
@@ -361,10 +419,39 @@ def dismiss_popups(page) -> None:
         pass
 
 
-def turn_page(page) -> None:
+def dismiss_library_popups(page) -> None:
+    """ライブラリ画面の案内ダイアログ等を閉じる"""
+    dismiss_popups(page)
+
+    selectors = [
+        '[role="dialog"] button:has-text("OK")',
+        'button:has-text("OK")',
+        '[role="dialog"] [aria-label="Close"]',
+        '[role="dialog"] .a-icon-close',
+        '[role="dialog"] .a-popover-close',
+    ]
+    for selector in selectors:
+        try:
+            el = page.query_selector(selector)
+            if el and el.is_visible():
+                el.click(timeout=2000)
+                page.wait_for_timeout(400)
+                break
+        except Exception:
+            continue
+
+    # 最後にEscでも試す
+    try:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(200)
+    except Exception:
+        pass
+
+
+def turn_page(page, key: str = "ArrowRight") -> None:
     """右矢印キーでページをめくり、アニメーション完了を待機"""
     dismiss_popups(page)
-    page.keyboard.press("ArrowRight")
+    page.keyboard.press(key)
     page.wait_for_timeout(500)
 
 
@@ -384,6 +471,35 @@ def focus_reader(page) -> None:
                 page.wait_for_timeout(200)
         except Exception:
             pass
+
+
+def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, stable_needed: int = 8) -> int:
+    """指定キー方向の端まで移動し、実際に移動した回数を返す"""
+    safe = sanitize_filename(title)
+    prev_path = tmpdir / f"{safe}_seek_prev.png"
+    curr_path = tmpdir / f"{safe}_seek_curr.png"
+    moved = 0
+    stable = 0
+
+    screenshot_current_page(page, prev_path)
+    for _ in range(max_steps):
+        turn_page(page, key)
+        screenshot_current_page(page, curr_path)
+
+        if images_are_identical(prev_path, curr_path):
+            stable += 1
+            curr_path.unlink(missing_ok=True)
+            if stable >= stable_needed:
+                break
+        else:
+            moved += 1
+            stable = 0
+            prev_path.unlink(missing_ok=True)
+            curr_path.replace(prev_path)
+
+    prev_path.unlink(missing_ok=True)
+    curr_path.unlink(missing_ok=True)
+    return moved
 
 
 def close_book(book_meta: dict) -> None:
@@ -472,16 +588,29 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         if partial_path.exists():
             partial_path.unlink()
 
+    focus_reader(reader_page)
+    next_page_key = in_progress_info.get("next_page_key", "ArrowRight")
+
+    # 途中再開時は前回の送り方向を継続。新規開始時は端まで移動して開始位置を合わせる。
     if start_page > 0:
         print(f"  前回の中断から再開: ページ {start_page} から")
         for _ in range(start_page):
-            turn_page(reader_page)
+            turn_page(reader_page, next_page_key)
+    else:
+        print("  書籍の端まで移動して開始位置を合わせます...")
+        moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+        next_page_key = "ArrowRight"
+        if moved_left < 3:
+            print("  ArrowLeftで移動量が不足したため、逆方向を試します...")
+            moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
+            if moved_right < 3:
+                raise RuntimeError("ページ移動が検出できません。リーダー表示/フォーカス状態を確認してください。")
+            next_page_key = "ArrowLeft"
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
     n = start_page
-
-    focus_reader(reader_page)
+    stop_reason = "unknown"
 
     while True:
         current_screenshot = tmpdir / f"{sanitize_filename(title)}_page_{n:04d}.png"
@@ -495,6 +624,7 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
                 if consecutive_dupes >= DUPLICATE_THRESHOLD:
                     print("  読了を検出しました。")
                     current_screenshot.unlink(missing_ok=True)
+                    stop_reason = "duplicate_end"
                     break
             else:
                 consecutive_dupes = 0
@@ -515,7 +645,8 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         log["in_progress"][title] = {
             "last_page": n + 1,
             "title": title,
-            "author": book_meta.get("author", "")
+            "author": book_meta.get("author", ""),
+            "next_page_key": next_page_key,
         }
         save_log(vault, log)
         write_partial(vault, title, pages_text)
@@ -526,12 +657,18 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         if old_prev and old_prev.exists():
             old_prev.unlink(missing_ok=True)
 
-        turn_page(reader_page)
+        turn_page(reader_page, next_page_key)
         time.sleep(RATE_LIMIT_SLEEP)
         n += 1
 
     if prev_screenshot and prev_screenshot.exists():
         prev_screenshot.unlink(missing_ok=True)
+
+    # 読み込み不全の早期終了を完了扱いしない
+    if stop_reason == "duplicate_end" and n < MIN_PAGES_FOR_COMPLETE:
+        print(f"  WARNING: {n}ページで終了。読込失敗の可能性があるため処理済みにしません。")
+        print("  ポップアップやリーダー未表示の影響がないか確認して再実行してください。")
+        return
 
     write_ocr_output(vault, book_meta, pages_text)
 
@@ -634,7 +771,11 @@ def main():
                 print("\n全書籍の処理が完了しました。")
 
             finally:
-                browser.close()
+                try:
+                    if browser.is_connected():
+                        browser.close()
+                except Exception:
+                    pass
 
     except KeyboardInterrupt:
         pass
