@@ -473,7 +473,7 @@ def focus_reader(page) -> None:
             pass
 
 
-def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, stable_needed: int = 8) -> int:
+def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, stable_needed: int = 15) -> int:
     """指定キー方向の端まで移動し、実際に移動した回数を返す"""
     safe = sanitize_filename(title)
     prev_path = tmpdir / f"{safe}_seek_prev.png"
@@ -620,34 +620,46 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         for _ in range(start_page):
             turn_page(reader_page, next_page_key)
     else:
-        print("  書籍の端まで移動して開始位置を合わせます...")
+        print("  先頭ページへ移動中...")
+
+        # Home / Ctrl+Home で先頭へジャンプしてから端まで移動
+        focus_reader(reader_page)
+        reader_page.keyboard.press("Home")
+        reader_page.wait_for_timeout(1000)
+        reader_page.keyboard.press("Control+Home")
+        reader_page.wait_for_timeout(1000)
+        focus_reader(reader_page)
+
         moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
         loc_left = extract_location_no(reader_page)
+        focus_reader(reader_page)
 
-        # 反対側の端へ移動して位置No.を比較し、必ず小さい側（先頭側）を開始点にする
+        # 反対側の端へ移動して位置No.または移動数で先頭を判定する
         moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
         loc_right = extract_location_no(reader_page)
+        focus_reader(reader_page)
 
-        if loc_left is None or loc_right is None:
-            raise RuntimeError(
-                "位置No.を取得できず先頭判定に失敗しました。"
-                " この状態で続行すると途中ページから開始されるため停止します。"
-            )
-        if loc_left == loc_right:
-            raise RuntimeError(
-                f"位置No.が同値で先頭判定できませんでした (left={loc_left}, right={loc_right})。"
-            )
-
-        # どちらのキーが位置No.を増やす方向か判定
-        next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
-        print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
-
-        # 小さい位置No.側を開始ページに固定
-        if loc_left < loc_right:
-            seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+        if loc_left is not None and loc_right is not None and loc_left != loc_right:
+            # 位置No.で判定（確実）
+            next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
+            start_key = "ArrowLeft" if loc_right > loc_left else "ArrowRight"
+            print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
         else:
-            # いま右端にいるのでそのまま開始
-            pass
+            # 位置No.不明 → 移動ページ数で判定（少ない側が先頭に近い）
+            if moved_left <= moved_right:
+                next_page_key = "ArrowRight"
+                start_key = "ArrowLeft"
+                print(f"  移動数判定: left={moved_left}, right={moved_right} → 左端が先頭（ArrowRight で進む）")
+            else:
+                next_page_key = "ArrowLeft"
+                start_key = "ArrowRight"
+                print(f"  移動数判定: left={moved_left}, right={moved_right} → 右端が先頭（ArrowLeft で進む）")
+
+        print("  先頭ページへ移動中...")
+        seek_edge(reader_page, tmpdir, title, start_key)
+        focus_reader(reader_page)
+        loc_check = extract_location_no(reader_page)
+        print(f"  先頭位置確認: 位置No.={loc_check}")
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
