@@ -680,22 +680,24 @@ def ensure_first_page_and_direction(page, tmpdir: Path, title: str) -> str:
             if total > 0 and (cur / total) > 0.7 and attempt < 2:
                 continue
 
-        return detect_forward_page_key(page, tmpdir, title, preferred="ArrowRight")
+        break
 
-    # フォールバック: Go to Page が取れない場合は、戻り方向キーで端までシークして先頭へ寄せる
+    # Go to Page の成否にかかわらず、進行方向を判定して先頭側へ強制シークする
     forward = detect_forward_page_key(page, tmpdir, title, preferred="ArrowRight")
-    if not goto_succeeded:
-        backward = OPPOSITE_PAGE_KEY.get(forward, "ArrowLeft")
-        moved_count = seek_edge(
-            page,
-            tmpdir,
-            title,
-            backward,
-            max_steps=5000,
-            stable_needed=10,
-        )
+    backward = OPPOSITE_PAGE_KEY.get(forward, "ArrowLeft")
+    moved_count = seek_edge(
+        page,
+        tmpdir,
+        title,
+        backward,
+        max_steps=12000,
+        stable_needed=10,
+    )
+    if goto_succeeded:
+        print(f"  先頭固定のため端シーク実施: key={backward}, moved={moved_count}")
+    else:
         print(f"  Go to Page失敗のため端シーク実施: key={backward}, moved={moved_count}")
-        forward = detect_forward_page_key(page, tmpdir, title, preferred=forward)
+    forward = detect_forward_page_key(page, tmpdir, title, preferred=forward)
     return forward
 
 
@@ -788,9 +790,11 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     focus_reader(reader_page)
     next_page_key = in_progress_info.get("next_page_key", "ArrowRight")
 
-    # 途中再開時は前回の送り方向を継続。新規開始時は自動で先頭ページへ移動し方向を判定する。
+    # 新規/再開を問わず先頭へ固定し、必要なら start_page まで進める。
     if start_page > 0:
-        print(f"  前回の中断から再開: ページ {start_page} から")
+        print(f"  前回の中断から再開: 先頭へ固定後、ページ {start_page} まで送り直します")
+        next_page_key = ensure_first_page_and_direction(reader_page, tmpdir, title)
+        print(f"  先頭固定と方向判定: next_page_key={next_page_key}")
         for _ in range(start_page):
             turn_page(reader_page, next_page_key)
     else:
