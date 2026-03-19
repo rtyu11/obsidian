@@ -301,8 +301,11 @@ def open_book(page, book: dict) -> dict:
     reader_page.wait_for_timeout(1000)
 
     # 先頭ページへ移動（Kindleは前回の読書位置を記憶するため）
-    reader_page.keyboard.press("Control+Home")
-    reader_page.wait_for_timeout(1000)
+    # 左矢印を500回押して先頭まで戻る
+    print("  先頭ページへ移動中...")
+    for _ in range(500):
+        reader_page.keyboard.press("ArrowLeft")
+    reader_page.wait_for_timeout(2000)
 
     return {"title": title, "author": "", "reader_page": reader_page}
 
