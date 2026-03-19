@@ -448,6 +448,60 @@ def dismiss_library_popups(page) -> None:
         pass
 
 
+def go_to_beginning(page) -> bool:
+    """⋮メニューから「最初のページ」へジャンプ。成功したらTrue"""
+    # ⋮ボタンを開く
+    menu_selectors = [
+        'button[aria-label="Menu"]',
+        'button[aria-label="Open menu"]',
+        '[data-testid="reader-menu-button"]',
+        'button.kr-icon-button[aria-label*="menu" i]',
+        'button[aria-label*="More" i]',
+    ]
+    opened = False
+    for sel in menu_selectors:
+        try:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                el.click(timeout=2000)
+                page.wait_for_timeout(600)
+                opened = True
+                break
+        except Exception:
+            continue
+
+    if not opened:
+        return False
+
+    # 「最初のページへ」「Go to beginning」等のメニュー項目をクリック
+    item_selectors = [
+        'button:has-text("最初のページへ")',
+        'button:has-text("先頭へ")',
+        'button:has-text("Go to beginning")',
+        'button:has-text("Beginning")',
+        '[role="menuitem"]:has-text("最初")',
+        '[role="menuitem"]:has-text("先頭")',
+        '[role="menuitem"]:has-text("beginning" i)',
+    ]
+    for sel in item_selectors:
+        try:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                el.click(timeout=2000)
+                page.wait_for_timeout(1500)
+                return True
+        except Exception:
+            continue
+
+    # メニューを閉じてfalseを返す
+    try:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+    except Exception:
+        pass
+    return False
+
+
 def turn_page(page, key: str = "ArrowRight") -> None:
     """右矢印キーでページをめくり、アニメーション完了を待機"""
     dismiss_popups(page)
@@ -622,42 +676,51 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     else:
         print("  先頭ページへ移動中...")
 
-        # Home / Ctrl+Home で先頭へジャンプしてから端まで移動
-        focus_reader(reader_page)
-        reader_page.keyboard.press("Home")
-        reader_page.wait_for_timeout(1000)
-        reader_page.keyboard.press("Control+Home")
-        reader_page.wait_for_timeout(1000)
-        focus_reader(reader_page)
-
-        moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
-        loc_left = extract_location_no(reader_page)
-        focus_reader(reader_page)
-
-        # 反対側の端へ移動して位置No.または移動数で先頭を判定する
-        moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
-        loc_right = extract_location_no(reader_page)
-        focus_reader(reader_page)
-
-        if loc_left is not None and loc_right is not None and loc_left != loc_right:
-            # 位置No.で判定（確実）
-            next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
-            start_key = "ArrowLeft" if loc_right > loc_left else "ArrowRight"
-            print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
+        # ステップ1: ⋮メニューの「最初のページへ」で先頭へジャンプ
+        jumped = go_to_beginning(reader_page)
+        if jumped:
+            print("  メニューで先頭へジャンプしました。")
+            focus_reader(reader_page)
+            # ArrowLeft で確実に端まで押し込む
+            seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+            focus_reader(reader_page)
+            next_page_key = "ArrowRight"
         else:
-            # 位置No.不明 → 移動ページ数で判定（少ない側が先頭に近い）
-            if moved_left <= moved_right:
-                next_page_key = "ArrowRight"
-                start_key = "ArrowLeft"
-                print(f"  移動数判定: left={moved_left}, right={moved_right} → 左端が先頭（ArrowRight で進む）")
-            else:
-                next_page_key = "ArrowLeft"
-                start_key = "ArrowRight"
-                print(f"  移動数判定: left={moved_left}, right={moved_right} → 右端が先頭（ArrowLeft で進む）")
+            # ステップ2: メニューが使えない場合は Home キー → 両端比較にフォールバック
+            print("  メニューが見つからないため両端比較で先頭を判定します...")
+            focus_reader(reader_page)
+            reader_page.keyboard.press("Home")
+            reader_page.wait_for_timeout(1000)
+            reader_page.keyboard.press("Control+Home")
+            reader_page.wait_for_timeout(1000)
+            focus_reader(reader_page)
 
-        print("  先頭ページへ移動中...")
-        seek_edge(reader_page, tmpdir, title, start_key)
-        focus_reader(reader_page)
+            moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+            loc_left = extract_location_no(reader_page)
+            focus_reader(reader_page)
+
+            moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
+            loc_right = extract_location_no(reader_page)
+            focus_reader(reader_page)
+
+            if loc_left is not None and loc_right is not None and loc_left != loc_right:
+                next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
+                start_key = "ArrowLeft" if loc_right > loc_left else "ArrowRight"
+                print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
+            else:
+                # 移動ページ数で判定（少ない側が先頭に近い）
+                if moved_left <= moved_right:
+                    next_page_key = "ArrowRight"
+                    start_key = "ArrowLeft"
+                    print(f"  移動数判定: left={moved_left}, right={moved_right} → 左端が先頭（ArrowRight で進む）")
+                else:
+                    next_page_key = "ArrowLeft"
+                    start_key = "ArrowRight"
+                    print(f"  移動数判定: left={moved_left}, right={moved_right} → 右端が先頭（ArrowLeft で進む）")
+
+            seek_edge(reader_page, tmpdir, title, start_key)
+            focus_reader(reader_page)
+
         loc_check = extract_location_no(reader_page)
         print(f"  先頭位置確認: 位置No.={loc_check}")
 
