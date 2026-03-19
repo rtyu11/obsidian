@@ -628,23 +628,26 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
         loc_right = extract_location_no(reader_page)
 
-        if loc_left is not None and loc_right is not None and loc_left != loc_right:
-            # どちらのキーが位置No.を増やす方向か判定
-            next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
+        if loc_left is None or loc_right is None:
+            raise RuntimeError(
+                "位置No.を取得できず先頭判定に失敗しました。"
+                " この状態で続行すると途中ページから開始されるため停止します。"
+            )
+        if loc_left == loc_right:
+            raise RuntimeError(
+                f"位置No.が同値で先頭判定できませんでした (left={loc_left}, right={loc_right})。"
+            )
 
-            # 小さい位置No.側を開始ページに固定
-            if loc_left < loc_right:
-                seek_edge(reader_page, tmpdir, title, "ArrowLeft")
-            else:
-                # いま右端にいるのでそのまま開始
-                pass
+        # どちらのキーが位置No.を増やす方向か判定
+        next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
+        print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
+
+        # 小さい位置No.側を開始ページに固定
+        if loc_left < loc_right:
+            seek_edge(reader_page, tmpdir, title, "ArrowLeft")
         else:
-            # 位置No.が取得できない環境向けフォールバック
-            next_page_key = "ArrowRight"
-            if moved_left < 3 and moved_right < 3:
-                raise RuntimeError("ページ移動が検出できません。リーダー表示/フォーカス状態を確認してください。")
-            if moved_left < 3:
-                next_page_key = "ArrowLeft"
+            # いま右端にいるのでそのまま開始
+            pass
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
