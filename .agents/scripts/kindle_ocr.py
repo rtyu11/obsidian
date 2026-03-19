@@ -449,7 +449,7 @@ def dismiss_library_popups(page) -> None:
 
 
 def go_to_beginning(page) -> bool:
-    """⋮メニューから「最初のページ」へジャンプ。成功したらTrue"""
+    """⋮メニューの「Go to Page」でページ1へジャンプ。成功したらTrue"""
     # ⋮ボタンを開く
     menu_selectors = [
         'button[aria-label="Menu"]',
@@ -473,27 +473,55 @@ def go_to_beginning(page) -> bool:
     if not opened:
         return False
 
-    # 「最初のページへ」「Go to beginning」等のメニュー項目をクリック
-    item_selectors = [
-        'button:has-text("最初のページへ")',
-        'button:has-text("先頭へ")',
-        'button:has-text("Go to beginning")',
-        'button:has-text("Beginning")',
-        '[role="menuitem"]:has-text("最初")',
-        '[role="menuitem"]:has-text("先頭")',
-        '[role="menuitem"]:has-text("beginning" i)',
+    # 「Go to Page」をクリック
+    goto_selectors = [
+        'button:has-text("Go to Page")',
+        '[role="menuitem"]:has-text("Go to Page")',
+        'button:has-text("ページへ移動")',
+        '[role="menuitem"]:has-text("ページへ移動")',
     ]
-    for sel in item_selectors:
+    goto_clicked = False
+    for sel in goto_selectors:
         try:
             el = page.query_selector(sel)
             if el and el.is_visible():
                 el.click(timeout=2000)
+                page.wait_for_timeout(800)
+                goto_clicked = True
+                break
+        except Exception:
+            continue
+
+    if not goto_clicked:
+        try:
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+        except Exception:
+            pass
+        return False
+
+    # 入力フィールドに 1 を入力して Enter
+    input_selectors = [
+        'input[type="number"]',
+        'input[type="text"]',
+        'input[placeholder*="page" i]',
+        'input[placeholder*="ページ" i]',
+        'input[aria-label*="page" i]',
+        'input[aria-label*="ページ" i]',
+    ]
+    for sel in input_selectors:
+        try:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                el.triple_click(timeout=2000)
+                el.type("1")
+                page.keyboard.press("Enter")
                 page.wait_for_timeout(1500)
                 return True
         except Exception:
             continue
 
-    # メニューを閉じてfalseを返す
+    # 入力フィールドが見つからなければ Escape で閉じて失敗
     try:
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)
@@ -681,10 +709,25 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         if jumped:
             print("  メニューで先頭へジャンプしました。")
             focus_reader(reader_page)
-            # ArrowLeft で確実に端まで押し込む
-            seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+            # ページ送り方向を確認：1ページ進めて位置No.が増える方向を next_page_key にする
+            loc_before = extract_location_no(reader_page)
+            reader_page.keyboard.press("ArrowRight")
+            reader_page.wait_for_timeout(800)
+            loc_after = extract_location_no(reader_page)
+            if loc_before is not None and loc_after is not None and loc_after > loc_before:
+                # ArrowRight が進む方向 → 1ページ戻してから開始
+                next_page_key = "ArrowRight"
+                reader_page.keyboard.press("ArrowLeft")
+                reader_page.wait_for_timeout(800)
+            elif loc_before is not None and loc_after is not None and loc_after < loc_before:
+                # ArrowLeft が進む方向 → いま ArrowRight で1ページ戻った状態なのでそのまま
+                next_page_key = "ArrowLeft"
+            else:
+                # 位置No.不明 → ArrowRight を仮定して先頭に戻る
+                next_page_key = "ArrowRight"
+                go_to_beginning(reader_page)
+                focus_reader(reader_page)
             focus_reader(reader_page)
-            next_page_key = "ArrowRight"
         else:
             # ステップ2: メニューが使えない場合は Home キー → 両端比較にフォールバック
             print("  メニューが見つからないため両端比較で先頭を判定します...")
