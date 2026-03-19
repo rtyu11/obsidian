@@ -296,16 +296,27 @@ def open_book(page, book: dict) -> dict:
     reader_page = new_page_info.value
     print("  新しいタブでリーダーが開きました。読み込み待機中...")
     reader_page.wait_for_load_state("domcontentloaded", timeout=60000)
-    reader_page.wait_for_timeout(5000)  # レンダリング完了を待つ
+
+    # リーダー本体が表示されるまで待機
+    print("  リーダー画面の表示を待機中...")
+    for selector in ['#book-reader', '.book-reader', '[data-testid="reader-container"]', '.kr-page-turn-area']:
+        try:
+            reader_page.wait_for_selector(selector, timeout=30000)
+            print(f"  リーダー確認: {selector}")
+            break
+        except Exception:
+            continue
+    reader_page.wait_for_timeout(3000)  # 描画安定待ち
+
     dismiss_popups(reader_page)  # ウェルカムポップアップを閉じる
     reader_page.wait_for_timeout(1000)
 
     # 先頭ページへ移動（Kindleは前回の読書位置を記憶するため）
-    # 左矢印を500回押して先頭まで戻る
+    # 左矢印を2000回押して先頭まで戻る
     print("  先頭ページへ移動中...")
-    for _ in range(500):
+    for _ in range(2000):
         reader_page.keyboard.press("ArrowLeft")
-    reader_page.wait_for_timeout(2000)
+    reader_page.wait_for_timeout(3000)
 
     return {"title": title, "author": "", "reader_page": reader_page}
 
@@ -355,6 +366,24 @@ def turn_page(page) -> None:
     dismiss_popups(page)
     page.keyboard.press("ArrowRight")
     page.wait_for_timeout(500)
+
+
+def focus_reader(page) -> None:
+    """キー操作が効くようにリーダー領域へフォーカスを与える"""
+    reader_el = (
+        page.query_selector('#book-reader') or
+        page.query_selector('.book-reader') or
+        page.query_selector('[data-testid="reader-container"]') or
+        page.query_selector('.kr-page-turn-area')
+    )
+    if reader_el:
+        try:
+            box = reader_el.bounding_box()
+            if box:
+                page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+                page.wait_for_timeout(200)
+        except Exception:
+            pass
 
 
 def close_book(book_meta: dict) -> None:
@@ -422,16 +451,26 @@ pages: {len(pages)}
 
 
 # ---------- 書籍処理ループ ----------
-def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: Path) -> None:
+def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: Path, resume: bool = False) -> None:
     title = book_meta["title"]
-    # リーダーは別タブで開いているので reader_page を使う
     reader_page = book_meta.get("reader_page", page)
     print(f"  OCR 処理開始: {title}")
 
-    # 再開ページ番号と既存テキストの復元
     in_progress_info = log.get("in_progress", {}).get(title, {})
     start_page = in_progress_info.get("last_page", 0)
-    pages_text = read_partial(vault, title) if start_page > 0 else []
+    partial_path = get_partial_path(vault, title)
+    pages_text = []
+
+    # 既定動作は先頭から再処理。--resume 指定時のみ中断地点から再開する
+    if resume and start_page > 0:
+        pages_text = read_partial(vault, title)
+    else:
+        start_page = 0
+        if title in log.get("in_progress", {}):
+            log["in_progress"].pop(title, None)
+            save_log(vault, log)
+        if partial_path.exists():
+            partial_path.unlink()
 
     if start_page > 0:
         print(f"  前回の中断から再開: ページ {start_page} から")
@@ -442,11 +481,13 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     prev_screenshot: Path | None = None
     n = start_page
 
+    focus_reader(reader_page)
+
     while True:
         current_screenshot = tmpdir / f"{sanitize_filename(title)}_page_{n:04d}.png"
         screenshot_current_page(reader_page, current_screenshot)
 
-        # 読了判定（連続同一画像）
+        # 重複ページ検知
         if prev_screenshot and prev_screenshot.exists():
             if images_are_identical(prev_screenshot, current_screenshot):
                 consecutive_dupes += 1
@@ -466,13 +507,9 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
             print(f" {len(text)}文字")
         except Exception as e:
             print(f"\n  ERROR ページ {n}: {e}")
-            # エラーページはスキップして続行
             pages_text.append(f"<!-- OCRエラー: ページ {n} -->")
 
-        # スクリーンショット削除
-        current_screenshot.unlink(missing_ok=True)
-
-        # 進捗保存
+        # 途中経過保存
         if "in_progress" not in log:
             log["in_progress"] = {}
         log["in_progress"][title] = {
@@ -483,16 +520,21 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         save_log(vault, log)
         write_partial(vault, title, pages_text)
 
-        prev_screenshot = current_screenshot  # パスのみ保持（既に削除済み）
+        # 比較が終わった前回画像はここで削除し、今回画像を次回比較用として残す
+        old_prev = prev_screenshot
+        prev_screenshot = current_screenshot
+        if old_prev and old_prev.exists():
+            old_prev.unlink(missing_ok=True)
 
         turn_page(reader_page)
         time.sleep(RATE_LIMIT_SLEEP)
         n += 1
 
-    # 最終出力
+    if prev_screenshot and prev_screenshot.exists():
+        prev_screenshot.unlink(missing_ok=True)
+
     write_ocr_output(vault, book_meta, pages_text)
 
-    # ログ更新
     if title not in log.get("processed", []):
         log.setdefault("processed", []).append(title)
     log.get("in_progress", {}).pop(title, None)
@@ -500,13 +542,12 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
     print(f"  完了: {n} ページ処理")
 
-
-# ---------- エントリーポイント ----------
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Kindle Cloud Reader OCR Pipeline")
     parser.add_argument("--one", action="store_true", help="1冊だけ処理して終了する")
     parser.add_argument("--list", action="store_true", help="ライブラリの書籍一覧を表示してスキップリストを更新する")
+    parser.add_argument("--resume", action="store_true", help="中断した本を続きから再開する（既定は先頭から再処理）")
     args = parser.parse_args()
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -580,9 +621,9 @@ def main():
                     try:
                         open_kindle_library(page)
                         book_meta = open_book(page, book)
-                        process_book(page, book_meta, client, log, vault, tmpdir)
+                        process_book(page, book_meta, client, log, vault, tmpdir, resume=args.resume)
                     except KeyboardInterrupt:
-                        print("\n中断しました。次回実行時に続きから再開できます。")
+                        print("\n中断しました。次回は --resume を付けると続きから再開できます。")
                         raise
                     except Exception as e:
                         print(f"  ERROR 書籍処理失敗 ({book['title']}): {e}")
@@ -605,3 +646,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
