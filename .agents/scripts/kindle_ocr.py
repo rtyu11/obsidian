@@ -502,6 +502,29 @@ def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, s
     return moved
 
 
+def extract_location_no(page) -> int | None:
+    """画面内テキストから位置No.の現在値を抽出する（取得できない場合はNone）"""
+    try:
+        text = page.evaluate("() => document.body ? document.body.innerText : ''")
+    except Exception:
+        return None
+
+    # 例: 位置No. 463/3562, 位置No463/3562, Location 463/3562
+    patterns = [
+        r"位置\s*No\.?\s*(\d+)\s*/\s*\d+",
+        r"位置No\.?\s*(\d+)\s*/\s*\d+",
+        r"Location\s*(\d+)\s*/\s*\d+",
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, flags=re.IGNORECASE)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                return None
+    return None
+
+
 def close_book(book_meta: dict) -> None:
     """リーダータブを閉じてライブラリに戻る"""
     reader_page = book_meta.get("reader_page")
@@ -599,13 +622,29 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     else:
         print("  書籍の端まで移動して開始位置を合わせます...")
         moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
-        next_page_key = "ArrowRight"
-        if moved_left < 3:
-            print("  ArrowLeftで移動量が不足したため、逆方向を試します...")
-            moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
-            if moved_right < 3:
+        loc_left = extract_location_no(reader_page)
+
+        # 反対側の端へ移動して位置No.を比較し、必ず小さい側（先頭側）を開始点にする
+        moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
+        loc_right = extract_location_no(reader_page)
+
+        if loc_left is not None and loc_right is not None and loc_left != loc_right:
+            # どちらのキーが位置No.を増やす方向か判定
+            next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
+
+            # 小さい位置No.側を開始ページに固定
+            if loc_left < loc_right:
+                seek_edge(reader_page, tmpdir, title, "ArrowLeft")
+            else:
+                # いま右端にいるのでそのまま開始
+                pass
+        else:
+            # 位置No.が取得できない環境向けフォールバック
+            next_page_key = "ArrowRight"
+            if moved_left < 3 and moved_right < 3:
                 raise RuntimeError("ページ移動が検出できません。リーダー表示/フォーカス状態を確認してください。")
-            next_page_key = "ArrowLeft"
+            if moved_left < 3:
+                next_page_key = "ArrowLeft"
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
