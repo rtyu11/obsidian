@@ -29,6 +29,7 @@ RATE_LIMIT_SLEEP = 1.5      # Gemini APIコール間のスリープ（秒）
 MAX_RETRIES = 3             # Gemini APIリトライ上限
 DUPLICATE_THRESHOLD = 5     # 連続同一スクリーンショット数で読了と判定
 MIN_PAGES_FOR_COMPLETE = 10 # これ未満で終了した場合は読込失敗の可能性が高い
+OPPOSITE_PAGE_KEY = {"ArrowRight": "ArrowLeft", "ArrowLeft": "ArrowRight"}
 
 OCR_PROMPT = """この画像はKindleの電子書籍のページです。ページの文字をMarkdownに変換してください。
 
@@ -449,58 +450,27 @@ def dismiss_library_popups(page) -> None:
 
 
 def go_to_beginning(page) -> bool:
-    """⋮メニューの「Go to Page」でページ1へジャンプ。成功したらTrue"""
-    # ⋮ボタンを開く
+    """Go to Page で先頭ページへ移動。成功したら True を返す。"""
+    focus_reader(page)
+    dismiss_popups(page)
+
     menu_selectors = [
         'button[aria-label="Menu"]',
         'button[aria-label="Open menu"]',
+        'button[aria-label*="menu" i]',
+        'button[aria-label*="more" i]',
         '[data-testid="reader-menu-button"]',
-        'button.kr-icon-button[aria-label*="menu" i]',
-        'button[aria-label*="More" i]',
+        '[data-testid*="menu"]',
+        'button.kr-icon-button',
     ]
-    opened = False
-    for sel in menu_selectors:
-        try:
-            el = page.query_selector(sel)
-            if el and el.is_visible():
-                el.click(timeout=2000)
-                page.wait_for_timeout(600)
-                opened = True
-                break
-        except Exception:
-            continue
-
-    if not opened:
-        return False
-
-    # 「Go to Page」をクリック
     goto_selectors = [
         'button:has-text("Go to Page")',
         '[role="menuitem"]:has-text("Go to Page")',
-        'button:has-text("ページへ移動")',
-        '[role="menuitem"]:has-text("ページへ移動")',
+        'button:has-text("Go to page")',
+        '[role="menuitem"]:has-text("Go to page")',
+        'button:has-text("ページ")',
+        '[role="menuitem"]:has-text("ページ")',
     ]
-    goto_clicked = False
-    for sel in goto_selectors:
-        try:
-            el = page.query_selector(sel)
-            if el and el.is_visible():
-                el.click(timeout=2000)
-                page.wait_for_timeout(800)
-                goto_clicked = True
-                break
-        except Exception:
-            continue
-
-    if not goto_clicked:
-        try:
-            page.keyboard.press("Escape")
-            page.wait_for_timeout(300)
-        except Exception:
-            pass
-        return False
-
-    # 入力フィールドに 1 を入力して Enter
     input_selectors = [
         'input[type="number"]',
         'input[type="text"]',
@@ -508,20 +478,42 @@ def go_to_beginning(page) -> bool:
         'input[placeholder*="ページ" i]',
         'input[aria-label*="page" i]',
         'input[aria-label*="ページ" i]',
+        '[role="dialog"] input',
+        '[role="menu"] input',
     ]
-    for sel in input_selectors:
-        try:
-            el = page.query_selector(sel)
-            if el and el.is_visible():
-                el.triple_click(timeout=2000)
-                el.type("1")
-                page.keyboard.press("Enter")
-                page.wait_for_timeout(1500)
-                return True
-        except Exception:
-            continue
 
-    # 入力フィールドが見つからなければ Escape で閉じて失敗
+    def click_first_visible(selectors: list[str]) -> bool:
+        for sel in selectors:
+            try:
+                el = page.query_selector(sel)
+                if el and el.is_visible():
+                    el.click(timeout=2500)
+                    page.wait_for_timeout(600)
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def type_page_one() -> bool:
+        for sel in input_selectors:
+            try:
+                el = page.query_selector(sel)
+                if el and el.is_visible():
+                    el.click(timeout=1500)
+                    page.keyboard.press("Control+A")
+                    page.keyboard.type("1")
+                    page.keyboard.press("Enter")
+                    page.wait_for_timeout(1400)
+                    return True
+            except Exception:
+                continue
+        return False
+
+    # メニュー経由
+    if click_first_visible(menu_selectors) and click_first_visible(goto_selectors):
+        if type_page_one():
+            return True
+
     try:
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)
@@ -555,6 +547,34 @@ def focus_reader(page) -> None:
             pass
 
 
+def extract_location_progress(page) -> tuple[int, int] | None:
+    """画面テキストから (current, total) の位置情報を抽出する。"""
+    try:
+        text = page.evaluate("() => document.body ? document.body.innerText : ''")
+    except Exception:
+        return None
+
+    patterns = [
+        r"(?:Location|位置)\s*(?:No\.?)?\s*(\d+)\s*/\s*(\d+)",
+        r"(?:Loc\.?)\s*(\d+)\s*/\s*(\d+)",
+        r"(\d+)\s*/\s*(\d+)",
+    ]
+    candidates: list[tuple[int, int]] = []
+    for pat in patterns:
+        for m in re.finditer(pat, text, flags=re.IGNORECASE):
+            try:
+                cur = int(m.group(1))
+                total = int(m.group(2))
+            except ValueError:
+                continue
+            if 0 < cur <= total and total >= 10:
+                candidates.append((cur, total))
+
+    if not candidates:
+        return None
+    return max(candidates, key=lambda x: x[1])
+
+
 def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, stable_needed: int = 15) -> int:
     """指定キー方向の端まで移動し、実際に移動した回数を返す"""
     safe = sanitize_filename(title)
@@ -585,26 +605,98 @@ def seek_edge(page, tmpdir: Path, title: str, key: str, max_steps: int = 4000, s
 
 
 def extract_location_no(page) -> int | None:
-    """画面内テキストから位置No.の現在値を抽出する（取得できない場合はNone）"""
-    try:
-        text = page.evaluate("() => document.body ? document.body.innerText : ''")
-    except Exception:
-        return None
-
-    # 例: 位置No. 463/3562, 位置No463/3562, Location 463/3562
-    patterns = [
-        r"位置\s*No\.?\s*(\d+)\s*/\s*\d+",
-        r"位置No\.?\s*(\d+)\s*/\s*\d+",
-        r"Location\s*(\d+)\s*/\s*\d+",
-    ]
-    for pat in patterns:
-        m = re.search(pat, text, flags=re.IGNORECASE)
-        if m:
-            try:
-                return int(m.group(1))
-            except ValueError:
-                return None
+    """画面内テキストから位置番号を抽出する（取得できない場合はNone）"""
+    progress = extract_location_progress(page)
+    if progress:
+        return progress[0]
     return None
+
+
+def probe_page_turn(page, tmpdir: Path, title: str, key: str) -> dict:
+    """1回だけページ送りを試し、差分情報を返して元ページへ戻す。"""
+    safe = sanitize_filename(title)
+    base = tmpdir / f"{safe}_probe_base_{key}.png"
+    after = tmpdir / f"{safe}_probe_after_{key}.png"
+    before_loc = extract_location_no(page)
+
+    focus_reader(page)
+    screenshot_current_page(page, base)
+    turn_page(page, key)
+    screenshot_current_page(page, after)
+
+    changed = not images_are_identical(base, after)
+    after_loc = extract_location_no(page)
+
+    if changed:
+        opposite = OPPOSITE_PAGE_KEY.get(key)
+        if opposite:
+            turn_page(page, opposite)
+            page.wait_for_timeout(300)
+
+    base.unlink(missing_ok=True)
+    after.unlink(missing_ok=True)
+
+    delta = None
+    if before_loc is not None and after_loc is not None:
+        delta = after_loc - before_loc
+
+    return {"changed": changed, "delta": delta}
+
+
+def detect_forward_page_key(page, tmpdir: Path, title: str, preferred: str = "ArrowRight") -> str:
+    """ページが進むキーを推定する。"""
+    opposite = OPPOSITE_PAGE_KEY.get(preferred, "ArrowLeft")
+    keys = [preferred, opposite]
+    probes = {k: probe_page_turn(page, tmpdir, title, k) for k in keys}
+
+    # 位置番号が増えるキーを優先
+    for key in keys:
+        delta = probes[key]["delta"]
+        if isinstance(delta, int) and delta > 0:
+            return key
+
+    # 位置情報が取れない場合は「画面が変わるキー」を優先
+    movable = [k for k in keys if probes[k]["changed"]]
+    if len(movable) == 1:
+        return movable[0]
+
+    return preferred
+
+
+def ensure_first_page_and_direction(page, tmpdir: Path, title: str) -> str:
+    """先頭ページ移動を試み、最終的なページ送りキーを返す。"""
+    goto_succeeded = False
+    for attempt in range(3):
+        moved = go_to_beginning(page)
+        if not moved:
+            page.wait_for_timeout(600)
+            continue
+        goto_succeeded = True
+
+        progress = extract_location_progress(page)
+        if progress:
+            cur, total = progress
+            # 先頭移動失敗で末尾へ飛んだケースを弾く
+            if total > 0 and (cur / total) > 0.7 and attempt < 2:
+                continue
+
+        return detect_forward_page_key(page, tmpdir, title, preferred="ArrowRight")
+
+    # フォールバック: Go to Page が取れない場合は、戻り方向キーで端までシークして先頭へ寄せる
+    forward = detect_forward_page_key(page, tmpdir, title, preferred="ArrowRight")
+    if not goto_succeeded:
+        backward = OPPOSITE_PAGE_KEY.get(forward, "ArrowLeft")
+        moved_count = seek_edge(
+            page,
+            tmpdir,
+            title,
+            backward,
+            max_steps=5000,
+            stable_needed=10,
+        )
+        print(f"  Go to Page失敗のため端シーク実施: key={backward}, moved={moved_count}")
+        forward = detect_forward_page_key(page, tmpdir, title, preferred=forward)
+    return forward
 
 
 def close_book(book_meta: dict) -> None:
@@ -696,30 +788,42 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     focus_reader(reader_page)
     next_page_key = in_progress_info.get("next_page_key", "ArrowRight")
 
-    # 途中再開時は前回の送り方向を継続。新規開始時はユーザーに先頭ページへ移動を依頼する。
+    # 途中再開時は前回の送り方向を継続。新規開始時は自動で先頭ページへ移動し方向を判定する。
     if start_page > 0:
         print(f"  前回の中断から再開: ページ {start_page} から")
         for _ in range(start_page):
             turn_page(reader_page, next_page_key)
     else:
-        print()
-        print(f"  【手動操作が必要】")
-        print(f"  ブラウザで「{title}」を先頭ページ（表紙・1ページ目）に移動してください。")
-        print(f"  ⋮メニュー → Go to Page → 1 で移動できます。")
-        print(f"  先頭ページが表示されたら Enter を押してください: ", end="", flush=True)
-        input()
-        focus_reader(reader_page)
-        reader_page.wait_for_timeout(500)
-        next_page_key = "ArrowRight"
+        next_page_key = ensure_first_page_and_direction(reader_page, tmpdir, title)
+        print(f"  先頭ページ移動と方向判定: next_page_key={next_page_key}")
+
+    # 念のため現在位置で再判定し、逆走を防ぐ
+    next_page_key = detect_forward_page_key(reader_page, tmpdir, title, preferred=next_page_key)
+    print(f"  使用するページ送りキー: {next_page_key}")
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
+    prev_location_no: int | None = None
     n = start_page
     stop_reason = "unknown"
 
     while True:
         current_screenshot = tmpdir / f"{sanitize_filename(title)}_page_{n:04d}.png"
         screenshot_current_page(reader_page, current_screenshot)
+        current_location_no = extract_location_no(reader_page)
+
+        # 逆走を検知したら次回送り方向を切り替える
+        if (
+            prev_location_no is not None
+            and current_location_no is not None
+            and current_location_no < prev_location_no
+        ):
+            old_key = next_page_key
+            next_page_key = OPPOSITE_PAGE_KEY.get(next_page_key, next_page_key)
+            print(
+                f"  WARNING: 逆走検知 (loc {prev_location_no} -> {current_location_no}) "
+                f"key切替 {old_key} -> {next_page_key}"
+            )
 
         # 重複ページ検知
         if prev_screenshot and prev_screenshot.exists():
@@ -764,6 +868,7 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
         turn_page(reader_page, next_page_key)
         time.sleep(RATE_LIMIT_SLEEP)
+        prev_location_no = current_location_no
         n += 1
 
     if prev_screenshot and prev_screenshot.exists():
@@ -892,4 +997,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
