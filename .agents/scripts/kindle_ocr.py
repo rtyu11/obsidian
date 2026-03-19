@@ -631,7 +631,7 @@ def probe_page_turn(page, tmpdir: Path, title: str, key: str) -> dict:
         opposite = OPPOSITE_PAGE_KEY.get(key)
         if opposite:
             turn_page(page, opposite)
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(600)
 
     base.unlink(missing_ok=True)
     after.unlink(missing_ok=True)
@@ -697,7 +697,6 @@ def ensure_first_page_and_direction(page, tmpdir: Path, title: str) -> str:
         print(f"  先頭固定のため端シーク実施: key={backward}, moved={moved_count}")
     else:
         print(f"  Go to Page失敗のため端シーク実施: key={backward}, moved={moved_count}")
-    forward = detect_forward_page_key(page, tmpdir, title, preferred=forward)
     return forward
 
 
@@ -801,8 +800,6 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         next_page_key = ensure_first_page_and_direction(reader_page, tmpdir, title)
         print(f"  先頭ページ移動と方向判定: next_page_key={next_page_key}")
 
-    # 念のため現在位置で再判定し、逆走を防ぐ
-    next_page_key = detect_forward_page_key(reader_page, tmpdir, title, preferred=next_page_key)
     print(f"  使用するページ送りキー: {next_page_key}")
 
     consecutive_dupes = 0
