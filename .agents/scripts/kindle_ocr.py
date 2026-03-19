@@ -77,7 +77,7 @@ def save_log(vault: Path, log: dict) -> None:
 
 
 # ---------- スキップリスト ----------
-SKIP_LIST_PATH = "Tasks/kindle_skip_list.md"
+SKIP_LIST_PATH = "Source/KindleOCR/kindle_skip_list.md"
 
 def load_skip_list(vault: Path) -> list[str]:
     """Tasks/kindle_skip_list.md のチェック済み項目をスキップタイトルとして返す"""
