@@ -682,17 +682,24 @@ def ensure_first_page_and_direction(page, tmpdir: Path, title: str) -> str:
 
         break
 
-    # Go to Page の成否にかかわらず、進行方向を判定して先頭側へ強制シークする
-    forward = detect_forward_page_key(page, tmpdir, title, preferred="ArrowRight")
-    backward = OPPOSITE_PAGE_KEY.get(forward, "ArrowLeft")
-    moved_count = seek_edge(
-        page,
-        tmpdir,
-        title,
-        backward,
-        max_steps=12000,
-        stable_needed=10,
-    )
+    # ArrowRight と ArrowLeft の両方を試してより多く移動できた方向を「後退」とし、先頭へシークする
+    results = {}
+    for key in ["ArrowRight", "ArrowLeft"]:
+        count = seek_edge(page, tmpdir, title, key, max_steps=200, stable_needed=5)
+        results[key] = count
+        print(f"  方向試行: key={key}, moved={count}")
+        if count > 0:
+            # 移動できたということはこちらが後退方向 → 逆が前進
+            backward = key
+            forward = OPPOSITE_PAGE_KEY.get(key, "ArrowRight")
+            break
+    else:
+        # どちらも動かなかった場合はデフォルト
+        backward = "ArrowLeft"
+        forward = "ArrowRight"
+
+    # 後退方向で先頭まで完全シーク
+    moved_count = seek_edge(page, tmpdir, title, backward, max_steps=12000, stable_needed=10)
     if goto_succeeded:
         print(f"  先頭固定のため端シーク実施: key={backward}, moved={moved_count}")
     else:
