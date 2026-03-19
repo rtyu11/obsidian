@@ -696,76 +696,21 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     focus_reader(reader_page)
     next_page_key = in_progress_info.get("next_page_key", "ArrowRight")
 
-    # 途中再開時は前回の送り方向を継続。新規開始時は端まで移動して開始位置を合わせる。
+    # 途中再開時は前回の送り方向を継続。新規開始時はユーザーに先頭ページへ移動を依頼する。
     if start_page > 0:
         print(f"  前回の中断から再開: ページ {start_page} から")
         for _ in range(start_page):
             turn_page(reader_page, next_page_key)
     else:
-        print("  先頭ページへ移動中...")
-
-        # ステップ1: ⋮メニューの「最初のページへ」で先頭へジャンプ
-        jumped = go_to_beginning(reader_page)
-        if jumped:
-            print("  メニューで先頭へジャンプしました。")
-            focus_reader(reader_page)
-            # ページ送り方向を確認：1ページ進めて位置No.が増える方向を next_page_key にする
-            loc_before = extract_location_no(reader_page)
-            reader_page.keyboard.press("ArrowRight")
-            reader_page.wait_for_timeout(800)
-            loc_after = extract_location_no(reader_page)
-            if loc_before is not None and loc_after is not None and loc_after > loc_before:
-                # ArrowRight が進む方向 → 1ページ戻してから開始
-                next_page_key = "ArrowRight"
-                reader_page.keyboard.press("ArrowLeft")
-                reader_page.wait_for_timeout(800)
-            elif loc_before is not None and loc_after is not None and loc_after < loc_before:
-                # ArrowLeft が進む方向 → いま ArrowRight で1ページ戻った状態なのでそのまま
-                next_page_key = "ArrowLeft"
-            else:
-                # 位置No.不明 → ArrowRight を仮定して先頭に戻る
-                next_page_key = "ArrowRight"
-                go_to_beginning(reader_page)
-                focus_reader(reader_page)
-            focus_reader(reader_page)
-        else:
-            # ステップ2: メニューが使えない場合は Home キー → 両端比較にフォールバック
-            print("  メニューが見つからないため両端比較で先頭を判定します...")
-            focus_reader(reader_page)
-            reader_page.keyboard.press("Home")
-            reader_page.wait_for_timeout(1000)
-            reader_page.keyboard.press("Control+Home")
-            reader_page.wait_for_timeout(1000)
-            focus_reader(reader_page)
-
-            moved_left = seek_edge(reader_page, tmpdir, title, "ArrowLeft")
-            loc_left = extract_location_no(reader_page)
-            focus_reader(reader_page)
-
-            moved_right = seek_edge(reader_page, tmpdir, title, "ArrowRight")
-            loc_right = extract_location_no(reader_page)
-            focus_reader(reader_page)
-
-            if loc_left is not None and loc_right is not None and loc_left != loc_right:
-                next_page_key = "ArrowRight" if loc_right > loc_left else "ArrowLeft"
-                start_key = "ArrowLeft" if loc_right > loc_left else "ArrowRight"
-                print(f"  位置No.判定: left={loc_left}, right={loc_right}, next={next_page_key}")
-            else:
-                # 移動ページ数で判定（少ない側が先頭に近い）
-                if moved_left <= moved_right:
-                    next_page_key = "ArrowRight"
-                    start_key = "ArrowLeft"
-                    print(f"  移動数判定: left={moved_left}, right={moved_right} → 左端が先頭（ArrowRight で進む）")
-                else:
-                    next_page_key = "ArrowLeft"
-                    start_key = "ArrowRight"
-                    print(f"  移動数判定: left={moved_left}, right={moved_right} → 右端が先頭（ArrowLeft で進む）")
-
-            seek_edge(reader_page, tmpdir, title, start_key)
-            focus_reader(reader_page)
-
-        loc_check = extract_location_no(reader_page)
-        print(f"  先頭位置確認: 位置No.={loc_check}")
+        print()
+        print(f"  【手動操作が必要】")
+        print(f"  ブラウザで「{title}」を先頭ページ（表紙・1ページ目）に移動してください。")
+        print(f"  ⋮メニュー → Go to Page → 1 で移動できます。")
+        print(f"  先頭ページが表示されたら Enter を押してください: ", end="", flush=True)
+        input()
+        focus_reader(reader_page)
+        reader_page.wait_for_timeout(500)
+        next_page_key = "ArrowRight"
 
     consecutive_dupes = 0
     prev_screenshot: Path | None = None
