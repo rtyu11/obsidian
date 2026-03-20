@@ -260,52 +260,48 @@ def open_kindle_library(page) -> None:
 
 
 def get_library_books(page) -> list[dict]:
-    """ライブラリから全書籍タイトルとクリック要素を収集する"""
+    """Kindle Cloud Reader の内部APIを使って全書籍を取得する"""
+    import json as _json
     print("書籍リストを収集中...")
 
-    # 仮想スクロールで全タイルを読み込む
-    prev_count = 0
-    for _ in range(50):
-        page.keyboard.press("End")
-        page.wait_for_timeout(800)
-        tiles = page.query_selector_all('[role="listitem"]')
-        if len(tiles) == prev_count:
-            break
-        prev_count = len(tiles)
-
-    # タイトル抽出
     books = []
-    for tile in tiles:
+    seen_asins = set()
+    pagination_token = None
+
+    for _ in range(500):
+        url = "https://read.amazon.co.jp/kindle-library/search?query=&libraryType=BOOKS&sortType=recency&querySize=50"
+        if pagination_token:
+            url += f"&paginationToken={pagination_token}"
+
         try:
-            title = ""
+            response = page.evaluate(f"""async () => {{
+                const r = await fetch("{url}", {{credentials: "include"}});
+                return await r.text();
+            }}""")
+            data = _json.loads(response)
+        except Exception as e:
+            print(f"  APIエラー: {e}")
+            break
 
-            # 1. aria-label を最優先（書籍名が入っていることが多い）
-            aria = tile.get_attribute("aria-label") or ""
-            if aria.strip():
-                title = aria.strip()
+        items = data.get("itemsList", [])
+        if not items:
+            break
 
-            # 2. data-asin がある要素のテキストから取得
-            if not title:
-                asin_el = tile.query_selector('[data-asin]')
-                if asin_el:
-                    title = (asin_el.get_attribute("aria-label") or "").strip()
+        for item in items:
+            asin = item.get("asin", "")
+            title = item.get("title", "").strip()
+            author = item.get("authors", [""])[0].strip() if item.get("authors") else ""
+            if asin and asin not in seen_asins and title:
+                seen_asins.add(asin)
+                books.append({"title": title, "author": author, "asin": asin})
 
-            # 3. img の alt テキスト（書籍カバー画像の alt はタイトルのことが多い）
-            if not title:
-                img = tile.query_selector('img[alt]')
-                if img:
-                    title = (img.get_attribute("alt") or "").strip()
+        print(f"\r  読み込み中... {len(books)} 冊", end="", flush=True)
 
-            # 4. フォールバック: tile のテキスト全体の1行目
-            if not title:
-                raw = tile.inner_text().strip()
-                title = raw.split("\n")[0].strip()
+        pagination_token = data.get("paginationToken")
+        if not pagination_token:
+            break
 
-            if title and title not in [b["title"] for b in books]:
-                books.append({"title": title})
-        except Exception:
-            continue
-
+    print()
     print(f"  {len(books)} 冊見つかりました")
     return books
 
@@ -682,21 +678,38 @@ def ensure_first_page_and_direction(page, tmpdir: Path, title: str) -> str:
 
         break
 
-    # ArrowRight と ArrowLeft の両方を試してより多く移動できた方向を「後退」とし、先頭へシークする
-    results = {}
-    for key in ["ArrowRight", "ArrowLeft"]:
-        count = seek_edge(page, tmpdir, title, key, max_steps=200, stable_needed=5)
-        results[key] = count
-        print(f"  方向試行: key={key}, moved={count}")
-        if count > 0:
-            # 移動できたということはこちらが後退方向 → 逆が前進
-            backward = key
-            forward = OPPOSITE_PAGE_KEY.get(key, "ArrowRight")
-            break
-    else:
-        # どちらも動かなかった場合はデフォルト
-        backward = "ArrowLeft"
-        forward = "ArrowRight"
+    # ロケーション番号で前進キーを判定する
+    forward = None
+    loc_before = extract_location_no(page)
+    if loc_before is not None:
+        for key in ["ArrowRight", "ArrowLeft"]:
+            turn_page(page, key)
+            loc_after = extract_location_no(page)
+            opposite = OPPOSITE_PAGE_KEY.get(key, "ArrowRight")
+            turn_page(page, opposite)  # 元に戻す
+            page.wait_for_timeout(600)
+            if loc_after is not None and loc_after > loc_before:
+                forward = key
+                print(f"  ロケーション番号で前進キー確定: {key} (loc {loc_before} -> {loc_after})")
+                break
+            print(f"  方向試行: key={key}, loc {loc_before} -> {loc_after}")
+
+    if forward is None:
+        # ロケーション取得できない場合は両方向に少し移動して多く動いた方を前進とする
+        counts = {}
+        for key in ["ArrowRight", "ArrowLeft"]:
+            c = seek_edge(page, tmpdir, title, key, max_steps=30, stable_needed=3)
+            counts[key] = c
+            print(f"  移動量試行: key={key}, moved={c}")
+            if c > 0:
+                # 動いた方向へ戻す
+                opposite = OPPOSITE_PAGE_KEY.get(key, "ArrowRight")
+                seek_edge(page, tmpdir, title, opposite, max_steps=30, stable_needed=3)
+        # より多く動けた方が前進
+        forward = max(counts, key=lambda k: counts[k]) if any(counts.values()) else "ArrowRight"
+        print(f"  移動量から前進キー推定: {forward}")
+
+    backward = OPPOSITE_PAGE_KEY.get(forward, "ArrowLeft")
 
     # 後退方向で先頭まで完全シーク
     moved_count = seek_edge(page, tmpdir, title, backward, max_steps=12000, stable_needed=10)
@@ -793,19 +806,32 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
         if partial_path.exists():
             partial_path.unlink()
 
-    focus_reader(reader_page)
-    next_page_key = in_progress_info.get("next_page_key", "ArrowRight")
-
-    # 新規/再開を問わず先頭へ固定し、必要なら start_page まで進める。
+    # ユーザーに手動で最初のページへ移動してもらう
+    print(f"\n  Kindleで「{title}」が開かれています。")
     if start_page > 0:
-        print(f"  前回の中断から再開: 先頭へ固定後、ページ {start_page} まで送り直します")
-        next_page_key = ensure_first_page_and_direction(reader_page, tmpdir, title)
-        print(f"  先頭固定と方向判定: next_page_key={next_page_key}")
+        print(f"  前回の中断から再開します（{start_page}ページ目から）。")
+    print("  最初のページに手動で移動してください。")
+    input("  準備ができたらEnterを押してください: ")
+
+    # 前進方向を1回だけ確認
+    focus_reader(reader_page)
+    loc_before = extract_location_no(reader_page)
+    turn_page(reader_page, "ArrowRight")
+    loc_after = extract_location_no(reader_page)
+    if loc_after is not None and loc_before is not None and loc_after > loc_before:
+        next_page_key = "ArrowRight"
+    else:
+        next_page_key = "ArrowLeft"
+    # 1ページ戻す
+    turn_page(reader_page, OPPOSITE_PAGE_KEY.get(next_page_key, "ArrowLeft"))
+    reader_page.wait_for_timeout(600)
+    print(f"  前進キー確定: {next_page_key}")
+
+    # resumeの場合は start_page 分だけ前進
+    if start_page > 0:
+        print(f"  ページ {start_page} まで送り直します...")
         for _ in range(start_page):
             turn_page(reader_page, next_page_key)
-    else:
-        next_page_key = ensure_first_page_and_direction(reader_page, tmpdir, title)
-        print(f"  先頭ページ移動と方向判定: next_page_key={next_page_key}")
 
     print(f"  使用するページ送りキー: {next_page_key}")
 
