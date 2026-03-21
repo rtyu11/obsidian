@@ -4,7 +4,7 @@ author: ""
 processed_date: 2026-03-20
 source: kindle_ocr
 pages: 290
-kindle_highlights: null
+kindle_highlights: "[[Source/Kindle/幸太郎-3652―伊坂幸太郎エッセイ集―（新潮文庫）.md]]"
 ---
 
 # 3652 伊坂幸太郎エッセイ集

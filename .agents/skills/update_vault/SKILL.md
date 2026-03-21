@@ -158,7 +158,48 @@ cd "c:\Users\111r9\OneDrive\ドキュメント\Obsidian Vault\obsidian"
 <!-- 「〇〇について話したい」で会話後に追記される -->
 ```
 
-### 6. 完了報告
+### 6. KindleOCRリンクの更新
+
+`Source/KindleOCR/` 内の `kindle_highlights: null` になっているファイルに対し、新しく追加された `Source/Kindle/` ファイルとのリンクを付与する。
+
+```python
+import re, sys
+from pathlib import Path
+sys.stdout.reconfigure(encoding='utf-8')
+
+vault = Path('c:/Users/111r9/OneDrive/ドキュメント/obsidian')
+ocr_dir = vault / 'Source' / 'KindleOCR'
+kindle_dir = vault / 'Source' / 'Kindle'
+
+def jp_only(s):
+    return re.sub(r'[^\u3040-\u9FFF\u30A0-\u30FF\u4E00-\u9FFF]', '', s)
+
+def find_highlight(title):
+    title_jp = jp_only(title)
+    for f in kindle_dir.iterdir():
+        if f.suffix == '.md':
+            fname_jp = jp_only(f.stem)
+            if title_jp and fname_jp:
+                if title_jp in fname_jp or fname_jp in title_jp:
+                    return f'[[Source/Kindle/{f.name}]]'
+    return None
+
+for f in ocr_dir.glob('*.md'):
+    if f.name == 'kindle_skip_list.md':
+        continue
+    content = f.read_text(encoding='utf-8')
+    if 'kindle_highlights: null' not in content:
+        continue
+    title_match = re.search(r'^title: \"(.+)\"', content, re.MULTILINE)
+    if not title_match:
+        continue
+    link = find_highlight(title_match.group(1))
+    if link:
+        f.write_text(content.replace('kindle_highlights: null', f'kindle_highlights: "{link}"'), encoding='utf-8')
+        print(f'リンク付与: {f.name}')
+```
+
+### 7. 完了報告
 - 作成・更新したBooksノート一覧とタグ
 - 作成・更新したTopicsノート一覧
 - 「〇〇について話したい」で会話を始められる旨の案内

@@ -4,7 +4,7 @@ author: ""
 processed_date: 2026-03-20
 source: kindle_ocr
 pages: 432
-kindle_highlights: null
+kindle_highlights: "[[Source/Kindle/劉 慈欣-透耶-三体.md]]"
 ---
 
 ![図: 「三体」の書籍表紙イラスト]

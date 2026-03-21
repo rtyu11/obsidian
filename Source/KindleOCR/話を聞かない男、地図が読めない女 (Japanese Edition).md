@@ -4,7 +4,7 @@ author: ""
 processed_date: 2026-03-20
 source: kindle_ocr
 pages: 281
-kindle_highlights: null
+kindle_highlights: "[[Source/Kindle/アラン・ピーズ-藤井留美-話を聞かない男、地図が読めない女.md]]"
 ---
 
 Why men don't listen & women can't read maps

@@ -4,7 +4,7 @@ author: ""
 processed_date: 2026-03-20
 source: kindle_ocr
 pages: 158
-kindle_highlights: null
+kindle_highlights: "[[Source/Kindle/幸之助-道をひらく.md]]"
 ---
 
 # 道をひらく

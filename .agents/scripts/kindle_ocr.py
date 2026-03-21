@@ -108,13 +108,17 @@ def find_kindle_highlight_file(vault: Path, title: str) -> str | None:
     kindle_dir = vault / "Source" / "Kindle"
     if not kindle_dir.exists():
         return None
-    # タイトルの主要部分（記号を除いた単語）で部分一致検索
-    title_clean = re.sub(r'[^\w\u3040-\u9FFF]', '', title)
+    # 記号・英数字・括弧を除いた日本語部分のみで照合
+    def jp_only(s: str) -> str:
+        return re.sub(r'[^\u3040-\u9FFF\u30A0-\u30FF\u4E00-\u9FFF]', '', s)
+
+    title_jp = jp_only(title)
     for f in kindle_dir.iterdir():
         if f.suffix == ".md":
-            fname_clean = re.sub(r'[^\w\u3040-\u9FFF]', '', f.stem)
-            if title_clean and title_clean in fname_clean:
-                return f"[[Source/Kindle/{f.name}]]"
+            fname_jp = jp_only(f.stem)
+            if title_jp and fname_jp:
+                if title_jp in fname_jp or fname_jp in title_jp:
+                    return f"[[Source/Kindle/{f.name}]]"
     return None
 
 
