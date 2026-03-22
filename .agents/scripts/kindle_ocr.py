@@ -193,15 +193,17 @@ def images_are_identical(path_a: Path, path_b: Path, threshold: int = 1000) -> b
 
 
 # ---------- Playwright操作 ----------
-def launch_browser(pw):
-    """ヘッドフルモードで Chromium を起動"""
-    browser = pw.chromium.launch(headless=False)
-    context = browser.new_context(
-        viewport={"width": 1280, "height": 800},
+def launch_browser(pw, vault: Path):
+    """ヘッドフルモードで Chromium を起動し、プロファイルを保持する"""
+    profile_dir = vault / ".agents" / "kindle_profile"
+    context = pw.chromium.launch_persistent_context(
+        user_data_dir=str(profile_dir),
+        headless=False,
+        viewport={"width": 1920, "height": 1080},
         locale="ja-JP"
     )
-    page = context.new_page()
-    return browser, page
+    page = context.pages[0] if context.pages else context.new_page()
+    return context, page
 
 
 def is_kindle_pc_running() -> bool:
@@ -967,7 +969,7 @@ def main():
 
     try:
         with sync_playwright() as pw:
-            browser, page = launch_browser(pw)
+            browser, page = launch_browser(pw, vault)
             try:
                 open_kindle_library(page)
                 books = get_library_books(page)
@@ -976,21 +978,22 @@ def main():
                     print("書籍が見つかりませんでした。ライブラリを確認してください。")
                     return
 
+                # スキップリストに未登録の本を追記（毎回自動で実行）
+                skip_path = vault / SKIP_LIST_PATH
+                existing = skip_path.read_text(encoding="utf-8") if skip_path.exists() else ""
+                existing_titles = [l.strip().lstrip("- [x]- [ ]").strip() for l in existing.splitlines() if l.strip().startswith("- [")]
+                new_lines = []
+                for b in books:
+                    if b["title"] not in existing_titles:
+                        new_lines.append(f"- [ ] {b['title']}")
+                if new_lines:
+                    skip_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(skip_path, "a", encoding="utf-8") as f:
+                        f.write("\n" + "\n".join(new_lines) + "\n")
+                    print(f"\n{len(new_lines)} 冊の新刊をスキップリストに追加しました: {skip_path}")
+
                 if args.list:
-                    # スキップリストに未登録の本を追記して終了
-                    skip_path = vault / SKIP_LIST_PATH
-                    existing = skip_path.read_text(encoding="utf-8") if skip_path.exists() else ""
-                    existing_titles = [l.strip().lstrip("- [x]- [ ]").strip() for l in existing.splitlines() if l.strip().startswith("- [")]
-                    new_lines = []
-                    for b in books:
-                        if b["title"] not in existing_titles:
-                            new_lines.append(f"- [ ] {b['title']}")
-                    if new_lines:
-                        skip_path.parent.mkdir(parents=True, exist_ok=True)
-                        with open(skip_path, "a", encoding="utf-8") as f:
-                            f.write("\n" + "\n".join(new_lines) + "\n")
-                        print(f"\n{len(new_lines)} 冊をスキップリストに追加しました: {skip_path}")
-                    else:
+                    if not new_lines:
                         print("\nスキップリストはすでに最新です。")
                     print("\n--- ライブラリ全書籍 ---")
                     for b in books:
@@ -1023,8 +1026,7 @@ def main():
 
             finally:
                 try:
-                    if browser.is_connected():
-                        browser.close()
+                    browser.close()
                 except Exception:
                     pass
 
