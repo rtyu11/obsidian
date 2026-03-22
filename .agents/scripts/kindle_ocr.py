@@ -199,7 +199,8 @@ def launch_browser(pw, vault: Path):
     context = pw.chromium.launch_persistent_context(
         user_data_dir=str(profile_dir),
         headless=False,
-        viewport={"width": 1920, "height": 1080},
+        no_viewport=True,
+        args=["--start-maximized"],
         locale="ja-JP"
     )
     page = context.pages[0] if context.pages else context.new_page()

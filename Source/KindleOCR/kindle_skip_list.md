@@ -255,3 +255,11 @@
 - [x] オレたちバブル入行組 (Japanese Edition)
 - [ ] 透明ポーラーベア/I LOVE YOU (祥伝社文庫) (Japanese Edition)
 - [ ] クリスマスを探偵と (Japanese Edition)
+
+- [ ] hatarakukoto no jinruigaku katsujiban shigoto to jiyuu wo meguru yattsu no taiwa (Japanese Edition)
+- [ ] 「名著」の読み方 (Japanese Edition)
+- [ ] 人間の建設（新潮文庫） (Japanese Edition)
+- [ ] 読書について (光文社古典新訳文庫) (Japanese Edition)
+- [ ] 別冊ＮＨＫ１００分ｄｅ名著　集中講義　ドストエフスキー　五大長編を解読する (Japanese Edition)
+- [ ] 障がい者専門風俗嬢のわたし (コミックエッセイ) (Japanese Edition)
+- [ ] そして誰もいなくなった (クリスティー文庫) (Japanese Edition)
