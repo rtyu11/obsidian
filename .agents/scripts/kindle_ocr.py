@@ -815,7 +815,10 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
     if start_page > 0:
         print(f"  前回の中断から再開します（{start_page}ページ目から）。")
     print("  最初のページに手動で移動してください。")
-    input("  準備ができたらEnterを押してください: ")
+    ans = input("  準備ができたらEnterを押してください (今回だけスキップする場合は 's' と入力): ")
+    if ans.strip().lower() == "s":
+        print(f"  「{title}」の処理を一時的にスキップします。（スキップリストには追加されません）")
+        return
 
     # 前進方向を1回だけ確認
     focus_reader(reader_page)
