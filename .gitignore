@@ -83,3 +83,5 @@ staged_files.txt
 # Google Drive ScribePDF フォルダへのシンボリックリンク
 # mklink /D で作成。PDFはGit管理対象外
 KindleInbox/
+
+.agents/kindle_profile/
