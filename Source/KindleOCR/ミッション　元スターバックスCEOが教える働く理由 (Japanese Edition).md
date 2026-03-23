@@ -4,7 +4,7 @@ author: ""
 processed_date: 2026-03-21
 source: kindle_ocr
 pages: 185
-kindle_highlights: null
+kindle_highlights: "[[Source/Kindle/松雄-ミッション　元スターバックスCEOが教える働く理由.md]]"
 ---
 
 # MISSION
