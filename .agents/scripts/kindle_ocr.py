@@ -314,51 +314,76 @@ def get_library_books(page) -> list[dict]:
 
 
 def open_book(page, book: dict) -> dict:
-    """書籍タイルをクリックしてリーダーを起動、メタデータを返す"""
+    """書籍をKindleリーダーで開いてメタデータを返す"""
     title = book["title"]
+    asin = book.get("asin", "")
     print(f"\n書籍を開いています: {title}")
     dismiss_library_popups(page)
 
-    # ライブラリ画面からタイトルで書籍タイルを再検索してクリック
-    # （open_kindle_library後にDOMが再構築されるため毎回検索が必要）
-    tile = None
-    tiles = page.query_selector_all('[role="listitem"]')
-    for t in tiles:
-        try:
-            aria = t.get_attribute("aria-label") or ""
-            img = t.query_selector('img[alt]')
-            img_alt = img.get_attribute("alt") if img else ""
-            raw = t.inner_text().strip().split("\n")[0]
-            if title in (aria, img_alt, raw):
-                tile = t
-                break
-        except Exception:
-            continue
-
-    if tile is None:
-        raise RuntimeError(f"書籍タイルが見つかりません: {title}")
-
-    # Kindleリーダーは別タブで開くため、新しいページ（タブ）を待機する
-    # まれに Kindle for PC が起動してしまうため、その場合はアプリを閉じてリトライする
     context = page.context
     reader_page = None
-    for attempt in range(3):
-        try:
-            with context.expect_page(timeout=15000) as new_page_info:
-                dismiss_library_popups(page)
-                tile.click()
-            reader_page = new_page_info.value
-            break
-        except Exception:
-            if is_kindle_pc_running():
-                print("  Kindle for PC が起動したため終了して再試行します...")
-                close_kindle_pc()
-                page.wait_for_timeout(1200)
-                continue
-            if attempt < 2:
-                page.wait_for_timeout(800)
-                continue
-            raise RuntimeError("Webリーダーを開けませんでした（Kindle for PCが優先起動している可能性があります）")
+
+    if asin:
+        # ASINが分かっている場合はURLで直接開く（DOMタイル検索不要）
+        reader_url = f"https://read.amazon.co.jp/?asin={asin}"
+        for attempt in range(3):
+            try:
+                with context.expect_page(timeout=15000) as new_page_info:
+                    dismiss_library_popups(page)
+                    page.evaluate(f"window.open('{reader_url}', '_blank')")
+                reader_page = new_page_info.value
+                break
+            except Exception:
+                if is_kindle_pc_running():
+                    print("  Kindle for PC が起動したため終了して再試行します...")
+                    close_kindle_pc()
+                    page.wait_for_timeout(1200)
+                    continue
+                if attempt < 2:
+                    page.wait_for_timeout(800)
+                    continue
+                raise RuntimeError("Webリーダーを開けませんでした（Kindle for PCが優先起動している可能性があります）")
+    else:
+        # ASINがない場合はDOMタイルをスクロールしながら検索（フォールバック）
+        tile = None
+        for _ in range(30):
+            tiles = page.query_selector_all('[role="listitem"]')
+            for t in tiles:
+                try:
+                    aria = t.get_attribute("aria-label") or ""
+                    img = t.query_selector('img[alt]')
+                    img_alt = img.get_attribute("alt") if img else ""
+                    raw = t.inner_text().strip().split("\n")[0]
+                    if title in (aria, img_alt, raw):
+                        tile = t
+                        break
+                except Exception:
+                    continue
+            if tile:
+                break
+            page.evaluate("window.scrollBy(0, 600)")
+            page.wait_for_timeout(500)
+
+        if tile is None:
+            raise RuntimeError(f"書籍タイルが見つかりません: {title}")
+
+        for attempt in range(3):
+            try:
+                with context.expect_page(timeout=15000) as new_page_info:
+                    dismiss_library_popups(page)
+                    tile.click()
+                reader_page = new_page_info.value
+                break
+            except Exception:
+                if is_kindle_pc_running():
+                    print("  Kindle for PC が起動したため終了して再試行します...")
+                    close_kindle_pc()
+                    page.wait_for_timeout(1200)
+                    continue
+                if attempt < 2:
+                    page.wait_for_timeout(800)
+                    continue
+                raise RuntimeError("Webリーダーを開けませんでした（Kindle for PCが優先起動している可能性があります）")
 
     if reader_page is None:
         raise RuntimeError("Webリーダーを開けませんでした")
