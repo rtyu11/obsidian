@@ -1,6 +1,6 @@
 ---
 date: 2026-03-07
-tags: [ideas, ビジネス, テック, NFCタグ]
+tags: [idea, ビジネス, テック, NFCタグ]
 source: google-keep
 ---
 
