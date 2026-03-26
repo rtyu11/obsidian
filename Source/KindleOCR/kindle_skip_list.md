@@ -44,7 +44,7 @@
 - [ ] 「死」とは何か　イェール大学で23年連続の人気講義 (Japanese Edition)
 - [x] Chinya-tokkyu003-Turkey/Balkan Peninsula (Japanese Edition)
 - [ ] 運動脳 (Japanese Edition)
-- [ ] エンド・オブ・ライフ (集英社インターナショナル) (Japanese Edition)
+- [x] エンド・オブ・ライフ (集英社インターナショナル) (Japanese Edition)
 - [x] マネーロンダリング (幻冬舎文庫) (Japanese Edition)
 - [ ] 時間は存在しない (Japanese Edition)
 - [ ] 夜と霧 新版 (Japanese Edition)
@@ -62,14 +62,14 @@
 - [ ] 深夜特急2―マレー半島・シンガポール―（新潮文庫）【増補新版】 (Japanese Edition)
 - [x] 負けヒロインが多すぎる！　８．５ (ガガガ文庫) (Japanese Edition)
 - [ ] 深夜特急1―香港・マカオ―（新潮文庫）【増補新版】 (Japanese Edition)
-- [ ] Ascendance of a Bookworm: Part 5 Volume 7
+- [x] Ascendance of a Bookworm: Part 5 Volume 7
 - [x] 日帰り山あるきベスト130　関東周辺 (大人の遠足BOOK) (Japanese Edition)
 - [x] クルマで行く山あるき 関東周辺(2019年版) (大人の遠足BOOK) (Japanese Edition)
 - [ ] 一九八四年 (ハヤカワepi文庫) (Japanese Edition)
 
 - [x] フルメタル・パニック！　Family３ (富士見ファンタジア文庫) (Japanese Edition)
 - [ ] アンドロイドは電気羊の夢を見るか？ (Japanese Edition)
-- [ ] 論破力 (朝日新書) (Japanese Edition)
+- [x] 論破力 (朝日新書) (Japanese Edition)
 - [x] ツァラトゥストラはかく語りき (Japanese Edition)
 - [ ] さよならジャバウォック (Japanese Edition)
 - [x] Ascendance of a Bookworm: Part 5 Volume 6
@@ -78,7 +78,7 @@
 - [ ] プロジェクト・ヘイル・メアリー　下 (Japanese Edition)
 - [ ] プロジェクト・ヘイル・メアリー　上 (Japanese Edition)
 - [x] まんが パレスチナ問題 (講談社現代新書) (Japanese Edition)
-- [ ] 正・続　まんが パレスチナ問題 (講談社現代新書) (Japanese Edition)
+- [x] 正・続　まんが パレスチナ問題 (講談社現代新書) (Japanese Edition)
 - [x] Ascendance of a Bookworm: Part 5 Volume 5
 - [x] 負けヒロインが多すぎる！ ７ (ガガガ文庫) (Japanese Edition)
 - [x] 負けヒロインが多すぎる！　ＳＳＳ (ガガガ文庫) (Japanese Edition)
@@ -126,13 +126,13 @@
 - [x] The Secret Garden (AmazonClassics Edition)
 - [x] Full Metal Panic! Volume 1 (Light Novel)
 - [x] The Wizard of OZ　オズの魔法使い ラダーシリーズ (Japanese Edition)
-- [ ] Sherlock Holmes : Complete Collection
+- [x] Sherlock Holmes : Complete Collection
 - [x] The Little Prince　星の王子さま ラダーシリーズ (Japanese Edition)
 - [x] アリアドネの声 (幻冬舎単行本) (Japanese Edition)
 - [ ] アーモンド (Japanese Edition)
 - [x] 新装版　殺戮にいたる病 (講談社文庫) (Japanese Edition)
 - [ ] 目の見えない白鳥さんとアートを見にいく (集英社インターナショナル) (Japanese Edition)
-- [ ] 女子大生、オナホを売る。 (Japanese Edition)
+- [x] 女子大生、オナホを売る。 (Japanese Edition)
 - [x] 琥珀の夏 (文春文庫) (Japanese Edition)
 - [ ] 人間の性はなぜ奇妙に進化したのか (Japanese Edition)
 - [x] Ascendance of a Bookworm: Part 4 Volume 9
@@ -261,5 +261,8 @@
 - [ ] 人間の建設（新潮文庫） (Japanese Edition)
 - [ ] 読書について (光文社古典新訳文庫) (Japanese Edition)
 - [ ] 別冊ＮＨＫ１００分ｄｅ名著　集中講義　ドストエフスキー　五大長編を解読する (Japanese Edition)
-- [ ] 障がい者専門風俗嬢のわたし (コミックエッセイ) (Japanese Edition)
-- [ ] そして誰もいなくなった (クリスティー文庫) (Japanese Edition)
+- [x] 障がい者専門風俗嬢のわたし (コミックエッセイ) (Japanese Edition)
+- [x] そして誰もいなくなった (クリスティー文庫) (Japanese Edition)
+
+- [ ] Influence, New and Expanded: The Essential Guide to the Psychology of Influence and Persuasion in Everyday Life
+- [ ] The Mantis: A darkly funny, fast-paced Japanese thriller from the master of twisted morality

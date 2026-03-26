@@ -958,12 +958,203 @@ def process_book(page, book_meta: dict, client, log: dict, vault: Path, tmpdir: 
 
     print(f"  完了: {n} ページ処理")
 
+# ---------- Kindle for PC モード ----------
+
+def launch_kindle_pc() -> bool:
+    """Kindle for PC を起動する。既に起動中ならそのまま True を返す。"""
+    if is_kindle_pc_running():
+        return True
+    kindle_paths = [
+        r"C:\Users\{}\AppData\Local\Amazon\Kindle\application\Kindle.exe".format(os.environ.get("USERNAME", "")),
+        r"C:\Program Files\Amazon\Kindle\Kindle.exe",
+        r"C:\Program Files (x86)\Amazon\Kindle\Kindle.exe",
+    ]
+    for path in kindle_paths:
+        if Path(path).exists():
+            subprocess.Popen([path])
+            print(f"Kindle for PC を起動しました: {path}")
+            return True
+    print("Kindle for PC が見つかりません。手動で起動してください。")
+    return False
+
+
+def get_kindle_window():
+    """Kindle for PC のウィンドウを返す。見つからなければ None。"""
+    try:
+        import pygetwindow as gw
+        wins = gw.getWindowsWithTitle("Kindle")
+        for w in wins:
+            if w.title and "Kindle" in w.title:
+                return w
+    except ImportError:
+        print("ERROR: pygetwindow がインストールされていません。")
+        print("  pip install pygetwindow")
+        sys.exit(1)
+    return None
+
+
+def focus_kindle_window(win) -> None:
+    """Kindle for PC ウィンドウを前面に出す"""
+    try:
+        if win.isMinimized:
+            win.restore()
+        win.activate()
+        time.sleep(0.5)
+    except Exception:
+        pass
+
+
+def screenshot_kindle_pc(win, out_path: Path) -> None:
+    """Kindle for PC ウィンドウをキャプチャして保存"""
+    try:
+        import pyautogui
+    except ImportError:
+        print("ERROR: pyautogui がインストールされていません。")
+        print("  pip install pyautogui")
+        sys.exit(1)
+
+    try:
+        from PIL import Image
+    except ImportError:
+        print("ERROR: Pillow がインストールされていません。")
+        print("  pip install pillow")
+        sys.exit(1)
+
+    focus_kindle_window(win)
+    time.sleep(0.3)
+
+    try:
+        img = pyautogui.screenshot(region=(win.left, win.top, win.width, win.height))
+        img.save(str(out_path))
+    except Exception as e:
+        raise RuntimeError(f"スクリーンショット失敗: {e}")
+
+
+def turn_page_kindle_pc(win, key: str = "right") -> None:
+    """Kindle for PC でページをめくる"""
+    try:
+        import pyautogui
+    except ImportError:
+        sys.exit(1)
+
+    focus_kindle_window(win)
+    pyautogui.press(key)
+    time.sleep(0.6)
+
+
+def process_book_pc(title: str, client, log: dict, vault: Path, tmpdir: Path) -> None:
+    """Kindle for PC モードで1冊をOCR処理する"""
+    print(f"\n=== Kindle for PC モード: {title} ===")
+    print("Kindle for PC で対象の本を開き、先頭ページに移動してください。")
+    ans = input("準備ができたら Enter を押してください (スキップは 's'): ")
+    if ans.strip().lower() == "s":
+        print(f"「{title}」をスキップします。")
+        return
+
+    win = get_kindle_window()
+    if win is None:
+        print("ERROR: Kindle for PC のウィンドウが見つかりません。")
+        return
+
+    print(f"  ウィンドウ検出: {win.title}")
+    focus_kindle_window(win)
+
+    # 前進キーを確認
+    print("  ページ送りキーを確認中...")
+    base_path = tmpdir / f"{sanitize_filename(title)}_pc_base.png"
+    after_path = tmpdir / f"{sanitize_filename(title)}_pc_after.png"
+    screenshot_kindle_pc(win, base_path)
+
+    turn_page_kindle_pc(win, "right")
+    screenshot_kindle_pc(win, after_path)
+    if images_are_identical(base_path, after_path):
+        next_key = "left"
+        # 戻す
+        turn_page_kindle_pc(win, "right")
+    else:
+        next_key = "right"
+        # 1ページ戻す
+        turn_page_kindle_pc(win, "left")
+    base_path.unlink(missing_ok=True)
+    after_path.unlink(missing_ok=True)
+    print(f"  前進キー確定: {next_key}")
+
+    pages_text = []
+    n = 0
+    prev_screenshot: Path | None = None
+    consecutive_dupes = 0
+
+    while True:
+        curr_path = tmpdir / f"{sanitize_filename(title)}_pc_{n:04d}.png"
+        screenshot_kindle_pc(win, curr_path)
+
+        # 重複検知
+        if prev_screenshot and prev_screenshot.exists():
+            if images_are_identical(prev_screenshot, curr_path):
+                consecutive_dupes += 1
+                print(f"  ページ {n}: 同一画像 ({consecutive_dupes}/{DUPLICATE_THRESHOLD})")
+                if consecutive_dupes >= DUPLICATE_THRESHOLD:
+                    print("  読了を検出しました。")
+                    curr_path.unlink(missing_ok=True)
+                    break
+            else:
+                consecutive_dupes = 0
+
+        # OCR
+        try:
+            print(f"  ページ {n}: OCR中...", end="", flush=True)
+            text = ocr_page(client, curr_path)
+            pages_text.append(text)
+            print(f" {len(text)}文字")
+        except Exception as e:
+            print(f"\n  ERROR ページ {n}: {e}")
+            pages_text.append(f"<!-- OCRエラー: ページ {n} -->")
+
+        # 途中経過保存
+        log.setdefault("in_progress", {})[title] = {
+            "last_page": n + 1,
+            "title": title,
+            "author": "",
+            "mode": "pc",
+        }
+        save_log(vault, log)
+        write_partial(vault, title, pages_text)
+
+        old_prev = prev_screenshot
+        prev_screenshot = curr_path
+        if old_prev and old_prev.exists():
+            old_prev.unlink(missing_ok=True)
+
+        turn_page_kindle_pc(win, next_key)
+        time.sleep(RATE_LIMIT_SLEEP)
+        n += 1
+
+    if prev_screenshot and prev_screenshot.exists():
+        prev_screenshot.unlink(missing_ok=True)
+
+    if n < MIN_PAGES_FOR_COMPLETE:
+        print(f"  WARNING: {n}ページで終了。読込失敗の可能性があります。")
+        return
+
+    meta = {"title": title, "author": ""}
+    write_ocr_output(vault, meta, pages_text)
+
+    log.setdefault("processed", [])
+    if title not in log["processed"]:
+        log["processed"].append(title)
+    log.get("in_progress", {}).pop(title, None)
+    save_log(vault, log)
+    print(f"  完了: {n} ページ処理")
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Kindle Cloud Reader OCR Pipeline")
     parser.add_argument("--one", action="store_true", help="1冊だけ処理して終了する")
     parser.add_argument("--list", action="store_true", help="ライブラリの書籍一覧を表示してスキップリストを更新する")
     parser.add_argument("--resume", action="store_true", help="中断した本を続きから再開する（既定は先頭から再処理）")
+    parser.add_argument("--pc", action="store_true", help="Kindle for PC モードで処理する（Cloud Reader非対応本用）")
+    parser.add_argument("--title", type=str, default="", help="--pc モード時の書籍タイトル（省略時は入力プロンプト）")
     args = parser.parse_args()
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -985,6 +1176,22 @@ def main():
     # 一時フォルダ（OS の temp 領域、Vault外）
     tmpdir = Path(tempfile.mkdtemp(prefix="kindle_ocr_"))
     print(f"一時フォルダ: {tmpdir}")
+
+    # --pc モード: Kindle for PC を直接操作
+    if args.pc:
+        try:
+            launch_kindle_pc()
+            title = args.title.strip()
+            if not title:
+                title = input("処理する書籍タイトルを入力してください: ").strip()
+            if not title:
+                print("タイトルが入力されませんでした。終了します。")
+                return
+            process_book_pc(title, client, log, vault, tmpdir)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            print(f"一時フォルダを削除しました: {tmpdir}")
+        return
 
     try:
         from playwright.sync_api import sync_playwright
