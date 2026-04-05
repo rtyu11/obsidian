@@ -22,11 +22,9 @@ from datetime import datetime
 from collections import defaultdict
 
 # ローカル版 cognee (0.5.4.dev2) のパスを優先追加
-LOCAL_COGNEE_ROOT = Path(__file__).parent.parent / "cognee" / "cognee-0.5.4.dev2"
-if LOCAL_COGNEE_ROOT.exists():
-    sys.path.insert(0, str(LOCAL_COGNEE_ROOT))
-    # パッケージ本体 (cognee フォルダ) もインポート可能にする
-    sys.path.insert(0, str(LOCAL_COGNEE_ROOT / "cognee"))
+LOCAL_COGNEE_LIB = Path(__file__).parent.parent / "cognee" / "lib"
+if LOCAL_COGNEE_LIB.exists():
+    sys.path.insert(0, str(LOCAL_COGNEE_LIB))
 
 VAULT_PATH = Path(__file__).parent.parent.parent
 SKILLS_FOLDER = VAULT_PATH / ".agents" / "skills"
