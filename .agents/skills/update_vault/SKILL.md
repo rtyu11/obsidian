@@ -21,8 +21,8 @@ Source/KindleOCR/ ← OCRハイライト原文（編集禁止）
 Notes/Books/      ← 本1冊ごとのインデックスノート（タグ・リンクのみ。要約・気づきは書かない）
 
 Memo/             ← 単発の考察・調べたこと・独立した知識メモ
-Ideas/            ← アイデア・企画・着想
-Tasks/            ← 課題・やること
+Missions/Tasks/   ← 解決したい課題・やること・TODO
+Missions/Ideas/   ← 新しいビジネスアイデア・企画・着想
 Insights/         ← 会話から生まれた統合的な思考の記録・テーマ横断メモ
 ```
 
@@ -186,6 +186,7 @@ for f in ocr_dir.glob('*.md'):
    - `Insights/` — このテーマ・関連タグに言及しているファイルを全件確認
    - `Memo/` — 共通タグを持つファイルを全件確認
    - `Notes/Books/` — 関連タグを持つ本を全件確認
+   - `Missions/Tasks/` と `Missions/Ideas/` — 現在進行中の実課題や企画アイデアと照らし合わせるため必ず全件検索する
 
 ### 2. 会話冒頭での提示
 
@@ -219,10 +220,13 @@ for f in ocr_dir.glob('*.md'):
 
 ## 【トリガー3】「Insightにまとめて」
 
-会話の終わりにユーザーが「Insightにまとめて」と言ったら：
+会話の終わりにユーザーが「Insightにまとめて」と言ったら、AIは単にInsightsに保存して思考を停止せず、**Missionsへの還流**を確実に行う。
 
-### 保存先
-`Insights/[YYYY-MM-DD]-[テーマ].md`
+### 保存先と分類の判断
+会話の内容が「具体的な行動・課題」なら `Missions/Tasks/` に保存する。「新しい事業の種・企画」なら `Missions/Ideas/` に保存する。抽象的な単なる考察のまとめである場合は `Insights/` に保存しつつ、TasksやIdeas内の既存ノートへの追記やリンクを検討する。
+
+（※以下は基本フォーマットだが、保存先フォルダに合わせて調整すること）
+`Missions/Tasks/[課題名].md` または `Missions/Ideas/[企画名].md` または `Insights/[YYYY-MM-DD]-[テーマ].md`
 
 ### フォーマット
 
