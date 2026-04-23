@@ -266,3 +266,10 @@
 
 - [ ] Influence, New and Expanded: The Essential Guide to the Psychology of Influence and Persuasion in Everyday Life
 - [ ] The Mantis: A darkly funny, fast-paced Japanese thriller from the master of twisted morality
+
+- [ ] 幽霊の脳科学 (ハヤカワ新書) (Japanese Edition)
+- [x] 世界の絶景　教会＆寺院 (Japanese Edition)
+- [ ] フランケンシュタイン (光文社古典新訳文庫) (Japanese Edition)
+- [ ] ゴリオ爺さん (光文社古典新訳文庫) (Japanese Edition)
+- [ ] 月と六ペンス (光文社古典新訳文庫) (Japanese Edition)
+- [ ] (読んだふりしたけど)ぶっちゃけよく分からん、あの名作小説を面白く読む方法 (Japanese Edition)
