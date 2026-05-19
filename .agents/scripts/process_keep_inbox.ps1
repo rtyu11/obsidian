@@ -4,6 +4,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 if ([string]::IsNullOrWhiteSpace($VaultPath)) {
     $VaultPath = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
