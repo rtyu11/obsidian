@@ -6,10 +6,8 @@ description: Source/Kindle/*.md の英語ハイライトを解析し、Gemini AP
 # Kindle Vocab → Anki
 
 ## トリガー条件
-- 「洋書の単語をAnkiに取り込んで」
-- 「KindleVocabを更新して」
+- 「Ankiを更新して」
 - 「英単語をAnkiに追加して」
-- 「Kindle英単語を登録して」
 
 ## 前提条件
 
