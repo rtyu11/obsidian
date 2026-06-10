@@ -71,6 +71,7 @@ AIは、Source・Memo・Insightsの段階で思考を止めてはならない。
 | 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` |
 | 「OCR処理して」「LINE画像をOCRして」または本の表紙画像の添付 | `.agents/skills/book_highlighter/SKILL.md` |
 | 「Kindleをスキャンして」「Kindle OCRして」 | `.agents/skills/kindle_ocr/SKILL.md` |
+| 「洋書の単語をAnkiに取り込んで」「KindleVocabを更新して」「英単語をAnkiに追加して」 | `.agents/skills/kindle_vocab_anki/SKILL.md` |
 | Obsidianノートを作成・編集する場合 | `.agents/skills/obsidian-markdown/SKILL.md` |
 | URLのページ内容を読みたい・分析したい場合 | `.agents/skills/defuddle/SKILL.md` |
 
@@ -88,6 +89,7 @@ AIは、Source・Memo・Insightsの段階で思考を止めてはならない。
 | 「更新分をまとめて」「〇〇について話したい」「Insightにまとめて」 | `.agents/skills/update_vault/SKILL.md` | |
 | 「Scribeを処理して」「手書きメモを処理して」 | `.agents/skills/scribe_inbox/SKILL.md` | Claudeのビジョン機能が必要。Gemini等では動作しない場合あり |
 | 「Kindleをスキャンして」「Kindle OCRして」 | `.agents/skills/kindle_ocr/SKILL.md` | GEMINI_API_KEY要設定。playwright・google-genai・pillowのインストールが必要 |
+| 「洋書の単語をAnkiに取り込んで」「KindleVocabを更新して」「英単語をAnkiに追加して」 | `.agents/skills/kindle_vocab_anki/SKILL.md` | GEMINI_API_KEY要設定。Anki起動＋AnkiConnectアドオン必須（コード: 2055492159）|
 | Obsidianノートを作成・編集する場合 | `.agents/skills/obsidian-markdown/SKILL.md` | Wikiリンク・callout・frontmatter等Obsidian固有の構文を使う際に参照 |
 | URLのページ内容を読みたい・分析したい場合 | `.agents/skills/defuddle/SKILL.md` | `.md`で終わるURLにはWebFetchを使うこと。`npm install -g defuddle`が必要 |
 
