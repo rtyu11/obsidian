@@ -2,7 +2,7 @@
 kindle-bookId: '14587'
 kindle-title: 'Ascendance of a Bookworm: Part 5 Volume 7 (English Edition)'
 kindle-author: 'Miya Kazuki, You Shiina, and quof'
-kindle-highlightsCount: 20
+kindle-highlightsCount: 21
 kindle-asin: B0CGVQCMBD
 kindle-lastAnnotatedDate: Invalid date
 kindle-bookImageUrl: 'https://m.media-amazon.com/images/I/71uVT8mRs0L._SX1024.jpg'
@@ -73,5 +73,9 @@ intervened — location: [1051](kindle://book?action=open&asin=B0CGVQCMBD&locati
 
 ---
 peculiar — location: [1061](kindle://book?action=open&asin=B0CGVQCMBD&location=1061) ^ref-3160
+
+---
+
+creased — location: [1073](kindle://book?action=open&asin=B0CGVQCMBD&location=1073) ^ref-28889
 
 ---
